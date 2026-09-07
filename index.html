@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>مقدام — منصة الذكاء الاستباقي</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+html,body{height:100%;background:#0D0A54;color:rgba(255,255,255,.95);direction:rtl;-webkit-font-smoothing:antialiased}
+body{overflow:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#5343B766;border-radius:2px}
+.fi{animation:fi .35s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.pulse{animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+.spin{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pop{animation:pop .45s cubic-bezier(.17,.67,.3,1.4) both}
+@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.sr{animation:sr .3s ease both}
+@keyframes sr{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+const {useState,useEffect,useRef,createElement:h,Fragment} = React;
+
+// ── COLORS ──────────────────────────────────────────────
+const C={
+  navy:"#0D0A54",deep:"#281F89",purple:"#5343B7",soft:"#6F74D2",
+  blue:"#84C9F3",lb:"#A4D5FE",pale:"#D9F1FF",
+  yellow:"#D8EF23",white:"#FFFFFF",black:"#000000",
+  card:"rgba(255,255,255,0.04)",border:"rgba(255,255,255,0.08)",
+  tp:"rgba(255,255,255,0.95)",ts:"rgba(255,255,255,0.60)",tm:"rgba(255,255,255,0.38)",
+  danger:"#FF4B4B",warn:"#FF8C00",ok:"#00C97A"
+};
+
+// ── HELPERS ─────────────────────────────────────────────
+const s=(...args)=>Object.assign({},...args);
+const el=(tag,props,...kids)=>h(tag,props,...kids);
+
+// ── BADGE ───────────────────────────────────────────────
+const Badge=({children,color=C.soft,style={}})=>h('span',{style:s({display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:500,background:color+'22',border:`1px solid ${color}44`,color},style)},children);
+
+// ── BUTTON ──────────────────────────────────────────────
+const Btn=({children,variant='primary',onClick,style={},disabled=false,size='md'})=>{
+  const sz={sm:{padding:'5px 12px',fontSize:11},md:{padding:'8px 18px',fontSize:13},lg:{padding:'11px 26px',fontSize:15}};
+  const vr={
+    primary:{background:C.yellow,color:C.navy,border:'none'},
+    ghost:{background:'transparent',color:C.soft,border:`1px solid ${C.purple}55`},
+    outline:{background:'transparent',color:C.tp,border:`1px solid ${C.border}`},
+    danger:{background:C.danger+'22',color:C.danger,border:`1px solid ${C.danger}44`},
+    success:{background:C.ok+'22',color:C.ok,border:`1px solid ${C.ok}44`},
+  };
+  return h('button',{onClick:disabled?undefined:onClick,style:s({display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,borderRadius:6,fontWeight:600,cursor:disabled?'not-allowed':'pointer',transition:'all .18s',opacity:disabled?.5:1},sz[size],vr[variant],style)},children);
+};
+
+// ── CARD ────────────────────────────────────────────────
+const Card=({children,style={},onClick,glow=false})=>h('div',{onClick,style:s({background:C.card,border:`1px solid ${glow?C.yellow+'44':C.border}`,borderRadius:10,padding:16,transition:'border-color .2s',cursor:onClick?'pointer':undefined,boxShadow:glow?`0 0 20px ${C.yellow}18`:'none'},style)},children);
+
+// ── RISK BADGE ──────────────────────────────────────────
+const Risk=({level})=>{
+  const m={"حرج":C.danger,"مرتفع":C.warn,"متوسط":C.yellow,"منخفض":C.ok};
+  const bg=m[level]||C.soft;
+  return h('span',{style:{background:bg+'22',color:bg,border:`1px solid ${bg}44`,fontSize:11,fontWeight:700,padding:'2px 9px',borderRadius:3}},level);
+};
+
+// ── STAT CARD ───────────────────────────────────────────
+const StatCard=({value,unit,label,icon,highlight=false,color})=>{
+  const clr=color||(highlight?C.yellow:C.tp);
+  return h('div',{style:{background:C.card,border:`1px solid ${highlight?C.yellow+'44':C.border}`,borderRadius:8,padding:'14px 16px',display:'flex',flexDirection:'column',gap:4}},
+    h('div',{style:{fontSize:10,color:C.tm}},icon),
+    h('div',{style:{display:'flex',alignItems:'baseline',gap:4}},
+      h('span',{style:{fontSize:28,fontWeight:800,color:clr,lineHeight:1}},value),
+      unit&&h('span',{style:{fontSize:12,color:clr,fontWeight:500}},unit)
+    ),
+    h('div',{style:{fontSize:11,color:C.ts}},label)
+  );
+};
+
+// ── AREA CHART SVG ──────────────────────────────────────
+const AreaChart=()=>{
+  const times=["15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00"];
+  const prob=[10,18,32,55,78,85,62,30,12];
+  const impact=[5,10,22,45,70,80,58,24,8];
+  const W=420,H=180,PL=30,PR=10,PT=10,PB=30;
+  const iW=W-PL-PR,iH=H-PT-PB;
+  const xS=i=>PL+i*(iW/(times.length-1));
+  const yS=v=>PT+iH-(v/100)*iH;
+  const line=d=>d.map((v,i)=>`${i===0?'M':'L'}${xS(i)},${yS(v)}`).join(' ');
+  const area=d=>`${line(d)} L${xS(d.length-1)},${PT+iH} L${xS(0)},${PT+iH} Z`;
+  return h('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',style:{display:'block'}},
+    h('defs',null,
+      h('linearGradient',{id:'g1',x1:'0',y1:'0',x2:'0',y2:'1'},h('stop',{offset:'0%',stopColor:C.soft,stopOpacity:'.5'}),h('stop',{offset:'100%',stopColor:C.soft,stopOpacity:'.02'})),
+      h('linearGradient',{id:'g2',x1:'0',y1:'0',x2:'0',y2:'1'},h('stop',{offset:'0%',stopColor:C.yellow,stopOpacity:'.35'}),h('stop',{offset:'100%',stopColor:C.yellow,stopOpacity:'.02'}))
+    ),
+    [0,25,50,75,100].map(v=>h('line',{key:v,x1:PL,y1:yS(v),x2:W-PR,y2:yS(v),stroke:C.border,strokeWidth:'.5'})),
+    times.map((t,i)=>h('text',{key:t,x:xS(i),y:H-4,textAnchor:'middle',fontSize:'8',fill:C.tm},t)),
+    h('path',{d:area(prob),fill:'url(#g1)'}),
+    h('path',{d:line(prob),fill:'none',stroke:C.soft,strokeWidth:'2',strokeLinecap:'round'}),
+    h('path',{d:area(impact),fill:'url(#g2)'}),
+    h('path',{d:line(impact),fill:'none',stroke:C.yellow,strokeWidth:'1.5',strokeLinecap:'round',strokeDasharray:'4 2'}),
+    h('circle',{cx:PL+6,cy:H-18,r:'3',fill:C.soft}),
+    h('text',{x:PL+14,y:H-15,fontSize:'8',fill:C.ts},'احتمالية التأثر'),
+    h('circle',{cx:PL+90,cy:H-18,r:'3',fill:C.yellow}),
+    h('text',{x:PL+98,y:H-15,fontSize:'8',fill:C.ts},'شدة الأثر')
+  );
+};
+
+// ── ACCURACY CHART ──────────────────────────────────────
+const AccChart=()=>{
+  const bs=["حدث 1","حدث 2","حدث 3","حدث 4","حدث 5","حدث 6","حدث 7"];
+  const loc=[75,80,83,85,86,88,90],conf=[70,76,79,82,85,87,91];
+  const W=380,H=140,PL=28,PR=10,PT=10,PB=30;
+  const iW=W-PL-PR,iH=H-PT-PB;
+  const xS=i=>PL+i*(iW/(bs.length-1));
+  const yS=v=>PT+iH-((v-65)/35)*iH;
+  const line=d=>d.map((v,i)=>`${i===0?'M':'L'}${xS(i)},${yS(v)}`).join(' ');
+  return h('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',style:{display:'block'}},
+    [70,80,90,100].map(v=>h('g',{key:v},h('line',{x1:PL,y1:yS(v),x2:W-PR,y2:yS(v),stroke:C.border,strokeWidth:'.5'}),h('text',{x:PL-4,y:yS(v)+3,textAnchor:'end',fontSize:'7',fill:C.tm},v))),
+    bs.map((b,i)=>h('text',{key:b,x:xS(i),y:H-4,textAnchor:'middle',fontSize:'7.5',fill:C.tm},b)),
+    h('path',{d:line(loc),fill:'none',stroke:C.yellow,strokeWidth:'2',strokeLinecap:'round'}),
+    loc.map((v,i)=>h('circle',{key:i,cx:xS(i),cy:yS(v),r:'3',fill:C.navy,stroke:C.yellow,strokeWidth:'1.5'})),
+    h('path',{d:line(conf),fill:'none',stroke:C.soft,strokeWidth:'1.5',strokeLinecap:'round'}),
+    conf.map((v,i)=>h('circle',{key:i,cx:xS(i),cy:yS(v),r:'2.5',fill:C.navy,stroke:C.soft,strokeWidth:'1.5'}))
+  );
+};
+
+// ── NAV ─────────────────────────────────────────────────
+const NAV=[
+  {id:'dashboard',label:'مركز القيادة',icon:'⊞'},
+  {id:'forecast',label:'التنبؤ بالأثر',icon:'◎'},
+  {id:'map',label:'خريطة المخاطر',icon:'⊙'},
+  {id:'priorities',label:'الأولويات',icon:'▣'},
+  {id:'whatif',label:'محاكاة ماذا لو؟',icon:'⟆'},
+  {id:'recommendations',label:'التوصيات',icon:'◈'},
+  {id:'events',label:'الأحداث',icon:'⊛'},
+  {id:'reports',label:'التقارير',icon:'⊡'},
+  {id:'datasources',label:'مصادر البيانات',icon:'◉'},
+  {id:'settings',label:'الإعدادات',icon:'⊟'},
+];
+
+// ── SIDEBAR ─────────────────────────────────────────────
+const Sidebar=({active,onNav,approved})=>h('aside',{style:{width:210,background:`linear-gradient(180deg,${C.deep} 0%,${C.navy} 100%)`,borderLeft:`1px solid ${C.border}`,height:'100vh',display:'flex',flexDirection:'column',position:'fixed',right:0,top:0,zIndex:100}},
+  h('div',{style:{padding:'18px 16px 14px',borderBottom:`1px solid ${C.border}`}},
+    h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+      h('div',{className:'pulse',style:{width:6,height:6,background:C.ok,borderRadius:'50%'}}),
+      h('span',{style:{fontSize:17,fontWeight:800,color:C.white}},'مقدام')
+    ),
+    h('div',{style:{fontSize:10,color:C.tm,marginTop:3}},'الذكاء الاستباقي')
+  ),
+  h('nav',{style:{flex:1,overflowY:'auto',padding:'8px 0'}},
+    NAV.map(item=>{
+      const on=active===item.id;
+      return h('button',{key:item.id,onClick:()=>onNav(item.id),style:{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 16px',background:on?`${C.purple}33`:'transparent',color:on?C.white:C.ts,fontSize:12.5,fontWeight:on?600:400,borderRight:on?`2px solid ${C.yellow}`:'2px solid transparent',textAlign:'right',direction:'rtl',cursor:'pointer',border:'none',transition:'all .15s',fontFamily:'Arial,sans-serif'}},
+        h('span',{style:{fontSize:13,color:on?C.yellow:C.tm,flexShrink:0}},item.icon),
+        h('span',{style:{flex:1}},item.label),
+        item.id==='recommendations'&&approved&&h('span',{style:{fontSize:9,color:C.yellow}},'●'),
+        item.id==='whatif'&&h('span',{style:{fontSize:9,background:C.yellow,color:C.navy,padding:'1px 5px',borderRadius:3,fontWeight:700}},'جديد')
+      );
+    })
+  ),
+  h('div',{style:{padding:'10px 14px',borderTop:`1px solid ${C.border}`}},
+    h(Badge,{color:C.yellow,style:{color:C.navy,fontSize:10,fontWeight:700}},'◎ بيانات افتراضية')
+  )
+);
+
+// ── TOPBAR ──────────────────────────────────────────────
+const Topbar=({pageId,approved,onBack})=>{
+  const titles={dashboard:'مركز القيادة',forecast:'التنبؤ بالأثر',map:'خريطة المخاطر',priorities:'الأولويات',whatif:'محاكاة ماذا لو؟',recommendations:'التوصيات',events:'الأحداث',reports:'التقارير',datasources:'مصادر البيانات',settings:'الإعدادات'};
+  return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px',borderBottom:`1px solid ${C.border}`,background:`${C.navy}ee`,backdropFilter:'blur(8px)',position:'sticky',top:0,zIndex:50}},
+    h('div',{style:{fontSize:15,fontWeight:700,color:C.white}},titles[pageId]||'مقدام'),
+    h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 12px'}},
+        h('div',{className:'pulse',style:{width:6,height:6,background:C.ok,borderRadius:'50%'}}),
+        h('span',{style:{fontSize:11,color:C.ok,fontWeight:600}},'النظام يعمل بشكل طبيعي')
+      ),
+      h(Badge,{color:C.soft,style:{fontSize:11}},'آخر تحديث: منذ 5 دقائق'),
+      h(Badge,{color:C.yellow,style:{color:C.navy,fontWeight:700,fontSize:11}},'بيانات تجريبية'),
+      approved&&h(Badge,{color:C.ok,style:{fontSize:11}},'✓ قرار معتمد'),
+      h(Btn,{variant:'ghost',size:'sm',onClick:onBack},'← رجوع')
+    )
+  );
+};
+
+// ── LANDING ─────────────────────────────────────────────
+const Landing=({onEnter,onDiscover})=>h('div',{style:{minHeight:'100vh',background:C.navy,display:'flex',flexDirection:'column',direction:'rtl',overflow:'auto'}},
+  h('header',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 40px',borderBottom:`1px solid ${C.border}`}},
+    h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+      h('div',{className:'pulse',style:{width:7,height:7,background:C.ok,borderRadius:'50%'}}),
+      h('span',{style:{fontSize:20,fontWeight:800,color:C.white}},'مقدام'),
+      h('span',{style:{fontSize:11,color:C.tm,marginRight:4}},'منصة الذكاء الاستباقي')
+    ),
+    h(Badge,{color:C.yellow,style:{color:C.navy,fontWeight:700}},'نموذج أولي تجريبي • بيانات افتراضية')
+  ),
+  h('section',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 40px',textAlign:'center',position:'relative'}},
+    h('div',{style:{position:'absolute',inset:0,background:`radial-gradient(ellipse 50% 40% at 50% 55%,${C.purple}28 0%,transparent 70%)`,pointerEvents:'none'}}),
+    h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 14px',marginBottom:28}},
+      h('div',{className:'pulse',style:{width:6,height:6,background:C.yellow,borderRadius:'50%'}}),
+      h('span',{style:{fontSize:12,color:C.ts}},'حالة الاستخدام الأولى:'),
+      h('span',{style:{fontSize:12,color:C.white,fontWeight:600}},'الأمطار والسيول — منطقة الحدود الشمالية')
+    ),
+    h('h1',{style:{fontSize:48,fontWeight:900,color:C.white,lineHeight:1.2,marginBottom:20,maxWidth:660}},
+      'من التنبؤ بالحدث إلى ',h('span',{style:{color:C.yellow}},'التنبؤ بأثره.')
+    ),
+    h('p',{style:{fontSize:16,color:C.ts,lineHeight:1.85,maxWidth:580,marginBottom:36}},'منصة ذكاء استباقي تحوّل البيانات والمؤشرات المتعددة إلى رؤية قابلة للتنفيذ، وتساعد متخذ القرار على معرفة أين سيظهر الأثر، ومتى، ولماذا، وما الإجراء الأنسب قبل حدوثه.'),
+    h('div',{style:{display:'flex',gap:12,justifyContent:'center'}},
+      h(Btn,{variant:'primary',size:'lg',onClick:onEnter},'← الدخول إلى مركز القيادة'),
+      h(Btn,{variant:'ghost',size:'lg',onClick:onDiscover},'استكشاف كيف يعمل مقدام')
+    ),
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginTop:56,maxWidth:800,width:'100%'}},
+      [{n:'01',t:'تنبأ',d:'حدد أين ومتى سيظهر الأثر قبل حدوثه.'},{n:'02',t:'حاكِ',d:'قارن أثر القرارات المختلفة قبل تنفيذها.'},{n:'03',t:'قرّر',d:'احصل على توصية استباقية قابلة للتفسير.',y:true}]
+      .map((c,i)=>h('div',{key:i,style:{background:C.card,border:`1px solid ${c.y?C.yellow+'44':C.border}`,borderRadius:8,padding:'20px 18px',textAlign:'right'}},
+        h('div',{style:{fontSize:10,color:c.y?C.yellow:C.tm,marginBottom:10,fontWeight:700}},c.n),
+        h('div',{style:{fontSize:18,fontWeight:700,color:c.y?C.yellow:C.white,marginBottom:6}},c.t),
+        h('div',{style:{fontSize:13,color:C.ts,lineHeight:1.6}},c.d)
+      ))
+    ),
+    h('div',{style:{display:'flex',alignItems:'center',gap:0,marginTop:36,flexWrap:'wrap',justifyContent:'center'}},
+      ['البيانات','التنبؤ بالأثر','تحديد الأولويات','محاكاة القرار','التوصية','القرار'].map((s,i,a)=>h('div',{key:i,style:{display:'flex',alignItems:'center'}},
+        h('div',{style:{padding:'6px 14px',borderRadius:4,fontSize:12,fontWeight:500,background:s==='القرار'?C.yellow:C.card,border:`1px solid ${s==='القرار'?C.yellow:C.border}`,color:s==='القرار'?C.navy:C.ts}},s),
+        i<a.length-1&&h('span',{style:{color:C.purple+'88',margin:'0 3px',fontSize:14}},'←')
+      ))
+    )
+  ),
+  h('footer',{style:{padding:'14px 40px',borderTop:`1px solid ${C.border}`,textAlign:'center'}},
+    h('p',{style:{fontSize:11,color:C.tm}},'تستخدم النسخة الحالية بيانات افتراضية لأغراض المحاكاة والعرض، ويمكن ربط المنصة مستقبلًا بمصادر البيانات المصرح باستخدامها.')
+  )
+);
+
+// ── HOW MODAL ───────────────────────────────────────────
+const HowModal=({onClose})=>h('div',{onClick:onClose,style:{position:'fixed',inset:0,background:'#000a',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center'}},
+  h('div',{className:'fi',onClick:e=>e.stopPropagation(),style:{background:C.deep,border:`1px solid ${C.border}`,borderRadius:12,padding:32,maxWidth:500,width:'90%',direction:'rtl'}},
+    h('h3',{style:{fontSize:20,fontWeight:700,marginBottom:18,color:C.white}},'كيف يعمل مقدام؟'),
+    [['البيانات الواردة','بيانات جوية + مكانية + تشغيلية + تاريخية'],['نموذج التنبؤ','يتنبأ بمواقع الأثر وزمنه ومستواه'],['محاكاة السيناريوهات','يقارن خيارات التدخل المختلفة قبل التنفيذ'],['التوصية القابلة للتفسير','يشرح لماذا أوصى بهذا القرار بالتحديد']].map(([t,d],i)=>
+      h('div',{key:i,style:{display:'flex',gap:12,marginBottom:14}},
+        h('div',{style:{width:26,height:26,background:C.yellow,color:C.navy,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:12,flexShrink:0}},i+1),
+        h('div',null,h('div',{style:{fontSize:13,fontWeight:600,color:C.white,marginBottom:3}},t),h('div',{style:{fontSize:12,color:C.ts}},d))
+      )
+    ),
+    h(Btn,{variant:'primary',onClick:onClose,style:{marginTop:8,width:'100%'}},'دخول إلى المنصة')
+  )
+);
+
+// ── DASHBOARD ───────────────────────────────────────────
+const Dashboard=({onNav,approved})=>h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+  h('div',{style:{background:`linear-gradient(90deg,${C.purple}22,${C.card})`,border:`1px solid ${C.yellow}44`,borderRadius:10,borderRight:`3px solid ${C.yellow}`,padding:'14px 18px',marginBottom:18,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16}},
+    h('div',{style:{flex:1}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+        h('div',{className:'pulse',style:{width:7,height:7,background:C.yellow,borderRadius:'50%'}}),
+        h('span',{style:{fontSize:11,fontWeight:700,color:C.yellow,letterSpacing:.8}},'تنبيه استباقي')
+      ),
+      h('p',{style:{fontSize:15,color:C.white,lineHeight:1.65,maxWidth:520}},'يتوقع مقدام تأثر ',h('strong',{style:{color:C.yellow}},'8 مواقع'),' في منطقة عرعر خلال الساعات القادمة نتيجة الحالة المطرية المتوقعة.'),
+      approved&&h('div',{style:{marginTop:8,fontSize:12,color:C.ok,fontWeight:600}},'✓ تم اعتماد التوصية — خطة الاستجابة محدّثة')
+    ),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:6}},
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:6}},
+        [['مستوى الخطورة','مرتفع',true],['بداية الأثر المتوقع','16:30',true],['درجة الثقة','91%',false],['المواقع المتأثرة','8',false]].map(([l,v,y])=>
+          h('div',{key:l,style:{minWidth:90}},
+            h('div',{style:{fontSize:18,fontWeight:800,color:y?C.yellow:C.white}},v),
+            h('div',{style:{fontSize:10,color:C.tm}},l)
+          )
+        )
+      ),
+      h('div',{style:{display:'flex',gap:8}},
+        h(Btn,{variant:'primary',size:'sm',onClick:()=>onNav('whatif')},'محاكاة القرار'),
+        h(Btn,{variant:'ghost',size:'sm',onClick:()=>onNav('map')},'عرض الأثر على الخريطة'),
+        h(Btn,{variant:'ghost',size:'sm',onClick:()=>onNav('recommendations')},'عرض التوصية')
+      )
+    )
+  ),
+  h('div',{style:{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:10,marginBottom:18}},
+    h(StatCard,{value:'12',label:'الأحداث المتوقعة',icon:'⊛'}),
+    h(StatCard,{value:'8',label:'المواقع عالية الخطورة',icon:'⚡',highlight:true}),
+    h(StatCard,{value:'17',label:'التوصيات الاستباقية',icon:'◈'}),
+    h(StatCard,{value:'34',label:'الموارد المطلوبة',icon:'⊞'}),
+    h(StatCard,{value:'18',unit:'د',label:'زمن الاستجابة المتوقع',icon:'⏱'}),
+    h(StatCard,{value:'91%',label:'دقة التنبؤ',icon:'◎',color:C.soft})
+  ),
+  h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}},
+    h(Card,{style:{padding:18}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:C.white,marginBottom:4}},'منحنى الاحتمالية والأثر'),
+      h('div',{style:{fontSize:11,color:C.tm,marginBottom:12}},'مقارنة بين احتمالية الحالة والأثر التشغيلي المتوقع'),
+      h(AreaChart)
+    ),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:12}},
+      h(Card,{style:{padding:16,flex:1}},
+        h('div',{style:{fontSize:13,fontWeight:700,color:C.white,marginBottom:12}},'التنبيهات الحرجة'),
+        [['طريق عرعر – رفحاء','16:40','حرج'],['طريق الملك عبدالعزيز','17:00','مرتفع'],['موقع خدمي — عرعر','17:20','مرتفع']].map(([loc,t,lv],i)=>
+          h('div',{key:i,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${C.border}`}},
+            h('div',null,h('div',{style:{fontSize:12,color:C.white}},loc),h('div',{style:{fontSize:10,color:C.tm}},t)),
+            h(Risk,{level:lv})
+          )
+        )
+      ),
+      h(Card,{style:{padding:16}},
+        h('div',{style:{fontSize:13,fontWeight:700,color:C.white,marginBottom:12}},'الجدول الزمني'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+          [['15:30','ظهور المؤشرات',true],['16:00','ارتفاع الاحتمالية',true],['16:30','بداية الأثر',true,'cur'],['17:00','ذروة التأثير',false],['18:30','انخفاض التأثير',false]].map(([t,l,d,cur])=>
+            h('div',{key:t,style:{display:'flex',gap:10,alignItems:'center'}},
+              h('div',{style:{width:7,height:7,borderRadius:'50%',background:cur?C.yellow:d?C.soft:C.border,boxShadow:cur?`0 0 0 3px ${C.yellow}33`:'none',flexShrink:0}}),
+              h('span',{style:{fontSize:11,color:cur?C.yellow:C.tm,minWidth:34}},t),
+              h('span',{style:{fontSize:11,color:cur?C.white:C.ts}},l),
+              cur&&h(Badge,{color:C.yellow,style:{color:C.navy,fontSize:9,fontWeight:700}},'الآن')
+            )
+          )
+        )
+      )
+    )
+  )
+);
+
+// ── FORECAST ────────────────────────────────────────────
+const Forecast=()=>h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+  h('div',{style:{marginBottom:20}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp}},'التنبؤ بالأثر'),
+    h('p',{style:{fontSize:12,color:C.ts,marginTop:4}},'مقدام لا يتنبأ بالحالة فقط، بل يتنبأ بأثرها التشغيلي.')
+  ),
+  h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}},
+    [{q:'أين؟',a:'طريق عرعر – رفحاء\n+ 7 مواقع'},{q:'متى؟',a:'16:30 — 18:30\nذروة: 17:00'},{q:'ما مستوى التأثير؟',a:'مرتفع جداً\n91% ثقة'},{q:'ماذا نفعل؟',a:'تدخل استباقي\nقبل 16:00',y:true}]
+    .map((item,i)=>h(Card,{key:i,style:{padding:16,borderRight:`2px solid ${item.y?C.yellow:C.purple+'66'}`}},
+      h('div',{style:{fontSize:10,color:item.y?C.yellow:C.tm,fontWeight:700,marginBottom:8}},item.q),
+      h('div',{style:{fontSize:13.5,color:item.y?C.yellow:C.white,fontWeight:600,lineHeight:1.6,whiteSpace:'pre-line'}},item.a)
+    ))
+  ),
+  h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}},
+    [['تقييم المخاطر','تصنيف بناءً على البيانات'],['التحليل المكاني','تحديد 8 مواقع'],['توليد التوصية','17 توصية استباقية'],['ترتيب الأولويات','مصفوفة أثر وزمن']].map(([t,d],i)=>
+      h(Card,{key:i,style:{padding:14}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},h('span',{style:{fontSize:12,fontWeight:600,color:C.white}},t),h('span',{style:{fontSize:14,color:C.ok}},'✓')),
+        h('div',{style:{fontSize:11,color:C.tm}},d),
+        h('div',{style:{marginTop:8,height:2,background:`linear-gradient(90deg,${C.ok} 100%,${C.border} 0)`,borderRadius:2}})
+      )
+    )
+  ),
+  h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}},
+    h(Card,{style:{padding:18}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:C.white,marginBottom:3}},'منحنى الأثر التشغيلي'),
+      h('div',{style:{fontSize:11,color:C.tm,marginBottom:12}},'الاحتمالية مقابل شدة الأثر خلال نافذة الحدث'),
+      h(AreaChart)
+    ),
+    h(Card,{style:{padding:18}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:C.white,marginBottom:3}},'أداء التنبؤ'),
+      h('div',{style:{fontSize:11,color:C.tm,marginBottom:14}},'تطور دقة النموذج عبر الأحداث'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+        [['91%','دقة التنبؤ',C.soft],['88%','دقة تحديد المواقع',C.yellow],['90%','متوسط الثقة',C.soft],['93%','دقة الأولويات',C.yellow]].map(([v,l,c])=>
+          h('div',{key:l,style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:'10px 12px'}},
+            h('div',{style:{fontSize:24,fontWeight:800,color:c}},v),
+            h('div',{style:{fontSize:11,color:C.tm,marginTop:2}},l),
+            h('div',{style:{marginTop:6,height:3,background:C.border,borderRadius:2}},h('div',{style:{width:v,height:'100%',background:c,borderRadius:2}}))
+          )
+        )
+      ),
+      h(AccChart)
+    )
+  )
+);
+
+// ── MAP ─────────────────────────────────────────────────
+const MapPage=({onNav})=>{
+  const [sel,setSel]=useState(null);
+  const [filter,setFilter]=useState('الكل');
+  const pts=[
+    {id:'p1',x:310,y:180,label:'عرعر',lv:'حرج',t:'16:30',c:'89%',res:'3 فرق',imp:'تجمع مياه حاد',dur:'90د',primary:true},
+    {id:'p2',x:180,y:250,label:'طريق عرعر–رفحاء',lv:'حرج',t:'16:40',c:'89%',res:'3 فرق',imp:'تجمع مياه وانخفاض الحركة',dur:'90د'},
+    {id:'p3',x:100,y:330,label:'رفحاء',lv:'مرتفع',t:'17:00',c:'82%',res:'2 فرقة',imp:'تأثير جزئي على الطرق',dur:'60د'},
+    {id:'p4',x:460,y:120,label:'طريف',lv:'متوسط',t:'17:30',c:'74%',res:'فرقة',imp:'احتمالية محدودة',dur:'40د'},
+    {id:'p5',x:540,y:260,label:'العويقيلة',lv:'منخفض',t:'18:00',c:'61%',res:'مراقبة',imp:'تأثير طفيف',dur:'30د'},
+    {id:'p6',x:260,y:300,label:'طريق فرعي–رفحاء',lv:'مرتفع',t:'16:50',c:'78%',res:'2 فرقة',imp:'تجمع مياه متوسط',dur:'70د'},
+    {id:'p7',x:370,y:220,label:'',lv:'مرتفع',t:'17:10',c:'72%',res:'فرقة',imp:'نقطة خطر ثانوية',dur:'45د'},
+    {id:'p8',x:420,y:310,label:'',lv:'حرج',t:'16:55',c:'80%',res:'2 فرقة',imp:'تجمع مياه حرج',dur:'80د'},
+    {id:'p9',x:200,y:180,label:'',lv:'متوسط',t:'17:20',c:'66%',res:'فرقة',imp:'خطر متوسط',dur:'50د'},
+    {id:'p10',x:490,y:200,label:'',lv:'منخفض',t:'18:10',c:'58%',res:'مراقبة',imp:'خطر منخفض',dur:'25د'},
+  ];
+  const clrMap={"حرج":C.danger,"مرتفع":C.warn,"متوسط":C.yellow,"منخفض":C.ok};
+  const displayed=filter==='الكل'?pts:pts.filter(p=>p.lv===filter);
+  const selPt=pts.find(p=>p.id===sel);
+  return h('div',{className:'fi',style:{padding:'14px 22px',height:'calc(100vh - 53px)',display:'flex',flexDirection:'column'}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+      h('div',null,h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp}},'خريطة المخاطر الاستباقية'),h('p',{style:{fontSize:12,color:C.ts,marginTop:4}},'انقر أي موقع لعرض تفاصيل الأثر المتوقع.')),
+      h(Badge,{color:C.yellow,style:{color:C.navy,fontWeight:700}},'نموذج أولي تجريبي | بيانات افتراضية')
+    ),
+    h('div',{style:{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}},
+      ['الكل','حرج','مرتفع','متوسط','منخفض'].map(f=>h('button',{key:f,onClick:()=>setFilter(f),style:{padding:'5px 14px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Arial,sans-serif',background:filter===f?(f==='الكل'?C.purple:clrMap[f]||C.purple)+'33':C.card,border:`1px solid ${filter===f?(f==='الكل'?C.purple:clrMap[f]||C.purple):C.border}`,color:filter===f?(f==='الكل'?C.soft:clrMap[f]||C.soft):C.ts}},f))
+    ),
+    h('div',{style:{flex:1,display:'flex',gap:14,minHeight:0}},
+      h('div',{style:{flex:1,position:'relative',borderRadius:10,overflow:'hidden',border:`1px solid ${C.border}`}},
+        h('svg',{width:'100%',height:'100%',viewBox:'0 0 660 440',style:{position:'absolute',inset:0}},
+          h('defs',null,
+            h('radialGradient',{id:'mapBg',cx:'45%',cy:'55%',r:'65%'},
+              h('stop',{offset:'0%',stopColor:'#0E3A3A'}),h('stop',{offset:'60%',stopColor:'#061F2A'}),h('stop',{offset:'100%',stopColor:'#030D14'})
+            ),
+            h('pattern',{id:'mapGrid',x:'0',y:'0',width:'30',height:'30',patternUnits:'userSpaceOnUse'},h('path',{d:'M 30 0 L 0 0 0 30',fill:'none',stroke:'rgba(0,200,180,0.08)',strokeWidth:'0.5'})),
+            h('radialGradient',{id:'aura1',cx:'50%',cy:'50%',r:'50%'},h('stop',{offset:'0%',stopColor:'#FF4B4B',stopOpacity:'.15'}),h('stop',{offset:'100%',stopColor:'transparent'})),
+            h('radialGradient',{id:'aura2',cx:'50%',cy:'50%',r:'50%'},h('stop',{offset:'0%',stopColor:'#5343B7',stopOpacity:'.12'}),h('stop',{offset:'100%',stopColor:'transparent'}))
+          ),
+          h('rect',{width:'660',height:'440',fill:'url(#mapBg)'}),
+          h('rect',{width:'660',height:'440',fill:'url(#mapGrid)'}),
+          h('ellipse',{cx:'310',cy:'200',rx:'120',ry:'85',fill:'url(#aura1)'}),
+          h('ellipse',{cx:'140',cy:'300',rx:'80',ry:'60',fill:'url(#aura2)'}),
+          h('line',{x1:'310',y1:'180',x2:'180',y2:'250',stroke:'rgba(0,200,180,0.35)',strokeWidth:'2'}),
+          h('line',{x1:'180',y1:'250',x2:'100',y2:'330',stroke:'rgba(0,200,180,0.25)',strokeWidth:'1.5'}),
+          h('line',{x1:'310',y1:'180',x2:'460',y2:'120',stroke:'rgba(0,200,180,0.25)',strokeWidth:'1.5'}),
+          h('line',{x1:'460',y1:'120',x2:'540',y2:'260',stroke:'rgba(0,200,180,0.2)',strokeWidth:'1'}),
+          h('line',{x1:'180',y1:'250',x2:'260',y2:'300',stroke:'rgba(0,200,180,0.2)',strokeWidth:'1'}),
+          h('line',{x1:'260',y1:'300',x2:'100',y2:'330',stroke:'rgba(0,200,180,0.18)',strokeWidth:'1'}),
+          displayed.map(p=>{
+            const clr=clrMap[p.lv];const on=sel===p.id;
+            return h('g',{key:p.id,style:{cursor:'pointer'},onClick:()=>setSel(sel===p.id?null:p.id)},
+              (p.primary||on)&&h('circle',{cx:p.x,cy:p.y,r:'36',fill:clr,fillOpacity:'.07',stroke:clr,strokeWidth:'.5',strokeOpacity:'.3',strokeDasharray:'4 4'}),
+              h('circle',{cx:p.x,cy:p.y,r:on?16:p.primary?13:9,fill:clr,fillOpacity:on?.9:.75,stroke:on?C.yellow:clr,strokeWidth:on?2.5:1.5}),
+              h('circle',{cx:p.x,cy:p.y,r:on?22:p.primary?19:14,fill:'none',stroke:clr,strokeWidth:'1',strokeOpacity:'.3',strokeDasharray:'3 3'}),
+              p.label&&h('text',{x:p.x,y:p.y-22,textAnchor:'middle',fontSize:p.primary?12:10,fill:on?C.yellow:C.white,fontWeight:(on||p.primary)?'700':'400'},p.label)
+            );
+          }),
+          h('text',{x:'330',y:'428',textAnchor:'middle',fontSize:'11',fill:'rgba(0,200,180,0.35)'},'منطقة الحدود الشمالية — بيانات افتراضية')
+        ),
+        h('div',{style:{position:'absolute',bottom:14,left:14,background:'rgba(3,13,20,.85)',border:`1px solid ${C.border}`,borderRadius:7,padding:'10px 14px'}},
+          h('div',{style:{fontSize:10,color:'rgba(0,200,180,.5)',marginBottom:7}},'مستويات الخطورة'),
+          Object.entries(clrMap).map(([k,v])=>h('div',{key:k,style:{display:'flex',alignItems:'center',gap:7,marginBottom:5}},h('div',{style:{width:8,height:8,borderRadius:'50%',background:v}}),h('span',{style:{fontSize:11,color:'rgba(0,200,180,.7)'}},k)))
+        )
+      ),
+      selPt?h('div',{className:'sr',style:{width:268,background:C.deep,border:`1px solid ${C.border}`,borderRadius:10,padding:18,display:'flex',flexDirection:'column',gap:12,overflowY:'auto'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+          h('h3',{style:{fontSize:15,fontWeight:700,color:C.white}},selPt.label||'موقع مخاطر'),
+          h('button',{onClick:()=>setSel(null),style:{color:C.tm,fontSize:18,background:'none',border:'none',cursor:'pointer'}},'×')
+        ),
+        h(Risk,{level:selPt.lv}),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+          [['الأثر المتوقع',selPt.imp],['بداية الأثر',selPt.t],['مدة التأثير',selPt.dur],['درجة الثقة',selPt.c],['الموارد',selPt.res]].map(([k,v])=>
+            h('div',{key:k,style:{background:C.card,borderRadius:6,padding:'9px 11px'}},h('div',{style:{fontSize:9,color:C.tm,marginBottom:3}},k),h('div',{style:{fontSize:12,color:C.white,fontWeight:500}},v))
+          )
+        ),
+        h('div',{style:{background:C.yellow+'11',border:`1px solid ${C.yellow}33`,borderRadius:7,padding:13}},
+          h('div',{style:{fontSize:9,color:C.yellow,marginBottom:5,fontWeight:700}},'توصية مقدام'),
+          h('p',{style:{fontSize:12,color:C.white,lineHeight:1.65}},'توجيه الفرق الميدانية إلى الموقع قبل بداية الأثر بـ30 دقيقة.')
+        ),
+        h(Btn,{variant:'primary',size:'sm',onClick:()=>onNav('whatif'),style:{width:'100%'}},'محاكاة القرار')
+      ):h('div',{style:{width:268,background:C.card,border:`1px dashed ${C.border}`,borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:20}},
+        h('div',{style:{fontSize:26,color:C.purple}},'⊙'),
+        h('p',{style:{fontSize:12,color:C.tm,textAlign:'center',lineHeight:1.6}},'انقر على أي نقطة لعرض تفاصيل المخاطر')
+      )
+    )
+  );
+};
+
+// ── PRIORITIES ──────────────────────────────────────────
+const Priorities=({onNav})=>{
+  const items=[
+    {rank:'01',title:'طريق عرعر – رفحاء',pct:94,lv:'حرج',desc:'أعلى احتمالية تجمع مياه مع كثافة مرورية عالية'},
+    {rank:'02',title:'طريق الملك عبدالعزيز',pct:91,lv:'مرتفع',desc:'تقاطع حيوي قرب المناطق السكنية'},
+    {rank:'03',title:'موقع خدمي — عرعر',pct:87,lv:'مرتفع',desc:'يخدم مجمعات سكنية واسعة'},
+    {rank:'04',title:'طريق فرعي — رفحاء',pct:72,lv:'متوسط',desc:'مخاطر متوسطة قابلة للإدارة بموارد محدودة'},
+  ];
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:8}},'الأولويات'),
+    h('div',{style:{fontSize:20,fontWeight:700,color:C.white,marginBottom:22}},'ما الذي يحتاج تدخلًا أولًا؟'),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:12}},
+      items.map((item,i)=>h('div',{key:i,style:{background:i===0?`${C.yellow}0a`:C.card,border:`1px solid ${i===0?C.yellow+'44':C.border}`,borderRadius:9,padding:'16px 20px',borderRight:`3px solid ${i===0?C.yellow:C.purple+'66'}`}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:14}},
+          h('div',{style:{fontSize:22,fontWeight:900,color:i===0?C.yellow:C.soft+'99',minWidth:32}},item.rank),
+          h('div',{style:{flex:1}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
+              h('span',{style:{fontSize:15,fontWeight:700,color:i===0?C.yellow:C.white}},item.title),
+              h(Risk,{level:item.lv}),
+              h('span',{style:{fontSize:22,fontWeight:800,color:i===0?C.yellow:C.white,marginRight:'auto'}},item.pct+'%')
+            ),
+            h('div',{style:{height:3,background:C.border,borderRadius:2,marginBottom:7}},h('div',{style:{width:`${item.pct}%`,height:'100%',background:i===0?C.yellow:C.soft,borderRadius:2}})),
+            h('p',{style:{fontSize:12,color:C.ts}},item.desc)
+          ),
+          h('div',{style:{display:'flex',gap:8}},
+            h(Btn,{variant:'ghost',size:'sm',onClick:()=>onNav('forecast')},'عرض الأثر'),
+            h(Btn,{variant:i===0?'primary':'ghost',size:'sm',onClick:()=>onNav('whatif')},'محاكاة القرار')
+          )
+        )
+      ))
+    )
+  );
+};
+
+// ── WHAT IF ─────────────────────────────────────────────
+const WhatIf=({onApprove,approved})=>{
+  const [sel,setSel]=useState('إرسال فرق ميدانية');
+  const [sim,setSim]=useState('idle');
+  const [step,setStep]=useState(0);
+  const [showWhy,setShowWhy]=useState(false);
+  const [showOk,setShowOk]=useState(false);
+  const opts=['عدم التدخل','إرسال فرق ميدانية','تحويل الحركة','إغلاق مؤقت للطريق','إعادة توزيع الموارد','تدخل مخصص'];
+  const simSteps=['تحليل السيناريو','تقدير الأثر','حساب الموارد','مقارنة النتائج'];
+  const run=()=>{
+    setSim('running');setStep(0);let s=0;
+    const iv=setInterval(()=>{s++;setStep(s);if(s>=simSteps.length){clearInterval(iv);setTimeout(()=>setSim('done'),400);}},650);
+  };
+  const doApprove=()=>{setShowOk(true);onApprove();};
+  if(showOk)return h('div',{className:'fi',style:{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'calc(100vh - 53px)',gap:18}},
+    h('div',{className:'pop',style:{width:70,height:70,background:C.yellow+'22',border:`2px solid ${C.yellow}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,color:C.yellow}},'✓'),
+    h('h2',{style:{fontSize:24,fontWeight:700,color:C.yellow}},'تم اعتماد التوصية'),
+    h('p',{style:{fontSize:14,color:C.ts,textAlign:'center',maxWidth:420}},'تم تحديث خطة الاستجابة والأولويات وفق السيناريو المعتمد.'),
+    h('div',{style:{display:'flex',gap:28,textAlign:'center'}},
+      [['معتمد','حالة القرار'],[sel,'نوع التدخل'],['16:10','وقت التنفيذ']].map(([v,l])=>h('div',{key:l},h('div',{style:{fontSize:16,fontWeight:700,color:C.yellow}},v),h('div',{style:{fontSize:11,color:C.tm}},l)))
+    ),
+    h(Btn,{variant:'primary',onClick:()=>setShowOk(false)},'العودة لماذا لو؟')
+  );
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('div',{style:{marginBottom:20}},h('h2',{style:{fontSize:26,fontWeight:900,color:C.yellow}},'ماذا لو؟'),h('p',{style:{fontSize:13,color:C.ts,marginTop:4}},'حاكِ أثر القرار قبل اتخاذه.')),
+    h(Card,{style:{padding:16,marginBottom:18,display:'flex',gap:24}},
+      [['السيناريو','حالة مطرية متوقعة — مدينة عرعر'],['الموقع','طريق عرعر – رفحاء'],['الأثر المتوقع','تجمع مياه وتأثر الحركة']].map(([k,v])=>h('div',{key:k},h('div',{style:{fontSize:10,color:C.tm,marginBottom:3}},k),h('div',{style:{fontSize:13,color:C.white,fontWeight:600}},v)))
+    ),
+    h('div',{style:{fontSize:12,color:C.ts,marginBottom:10}},'اختر نوع التدخل:'),
+    h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:18}},
+      opts.map(o=>h('button',{key:o,onClick:()=>{setSel(o);setSim('idle');},style:{padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,fontFamily:'Arial,sans-serif',cursor:'pointer',background:sel===o?C.yellow+'1a':C.card,border:`1px solid ${sel===o?C.yellow:C.border}`,color:sel===o?C.yellow:C.ts,transition:'all .15s'}},sel===o?'● ':'○ ',o))
+    ),
+    h(Btn,{variant:'primary',size:'lg',onClick:run,disabled:sim==='running',style:{marginBottom:22}},sim==='running'?'جاري التحليل...':'تشغيل المحاكاة'),
+    sim==='running'&&h(Card,{style:{padding:22,marginBottom:18,textAlign:'center'}},
+      h('div',{style:{fontSize:13,color:C.ts,marginBottom:18}},'يتم تحليل أثر القرار...'),
+      h('div',{style:{display:'flex',justifyContent:'center',gap:22,flexWrap:'wrap'}},
+        simSteps.map((s,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:8}},
+          h('div',{style:{width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,background:step>i?C.yellow:C.card,color:step>i?C.navy:C.tm,border:`1.5px solid ${step>i?C.yellow:step===i?C.yellow+'66':C.border}`,transition:'all .3s'}},step>i?'✓':h('div',{className:step===i?'spin':'',style:{width:8,height:8,borderRadius:'50%',border:step===i?`2px solid ${C.yellow}`:'none',borderTopColor:'transparent'}})),
+          h('span',{style:{fontSize:12,color:step>i?C.white:C.tm}},s)
+        ))
+      )
+    ),
+    sim==='done'&&h('div',{className:'fi'},
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:14,marginBottom:20,alignItems:'start'}},
+        h(Card,{style:{padding:20,border:`1px solid ${C.danger}33`}},
+          h('div',{style:{fontSize:13,fontWeight:700,color:C.danger,marginBottom:14}},'بدون تدخل'),
+          [['الأثر التشغيلي','مرتفع'],['زمن الاستجابة','42 دقيقة'],['المواقع المتأثرة','8'],['الموارد','10'],['مستوى المخاطر','مرتفع']].map(([k,v])=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:`1px solid ${C.border}`}},h('span',{style:{fontSize:11,color:C.tm}},k),h('span',{style:{fontSize:12,color:C.danger,fontWeight:600}},v)))
+        ),
+        h('div',{style:{fontSize:18,fontWeight:700,color:C.yellow,paddingTop:60,textAlign:'center'}},'VS'),
+        h(Card,{style:{padding:20,border:`1px solid ${C.yellow}44`},glow:true},
+          h('div',{style:{fontSize:13,fontWeight:700,color:C.yellow,marginBottom:14}},'تدخل استباقي — ',sel),
+          [['الأثر التشغيلي','منخفض'],['زمن الاستجابة','18 دقيقة'],['المواقع المتأثرة','3'],['الموارد','6'],['مستوى المخاطر','منخفض']].map(([k,v])=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:`1px solid ${C.yellow}22`}},h('span',{style:{fontSize:11,color:C.tm}},k),h('span',{style:{fontSize:12,color:C.yellow,fontWeight:600}},v)))
+        )
+      ),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}},
+        [['65%','انخفاض الأثر التشغيلي'],['57%','انخفاض زمن الاستجابة'],['42%','تحسن كفاءة الموارد']].map(([v,l])=>h('div',{key:l,style:{background:C.yellow+'0d',border:`1px solid ${C.yellow}44`,borderRadius:8,padding:'18px 16px',textAlign:'center'}},h('div',{style:{fontSize:36,fontWeight:900,color:C.yellow}},v),h('div',{style:{fontSize:11,color:C.ts,marginTop:5}},l)))
+      ),
+      h('div',{style:{background:`linear-gradient(135deg,${C.deep},${C.navy})`,border:`1px solid ${C.yellow}55`,borderRadius:12,padding:24,marginBottom:16}},
+        h('div',{style:{fontSize:11,color:C.yellow,fontWeight:700,marginBottom:10,letterSpacing:.8}},'توصية مقدام'),
+        h('p',{style:{fontSize:14,color:C.white,lineHeight:1.8,marginBottom:18}},'يوصي مقدام بتوجيه 3 فرق ميدانية إلى المواقع الأعلى أولوية قبل بداية الأثر بـ30 دقيقة، مع تحويل الحركة مؤقتًا عن المسار الأعلى خطورة.'),
+        h('div',{style:{display:'flex',gap:22,marginBottom:18}},
+          [['92%','درجة الثقة'],['16:10','وقت التنفيذ'],['3 فرق','الموارد']].map(([v,l])=>h('div',{key:l},h('div',{style:{fontSize:20,fontWeight:800,color:C.yellow}},v),h('div',{style:{fontSize:10,color:C.tm}},l)))
+        ),
+        h('div',{style:{display:'flex',gap:10}},
+          h(Btn,{variant:'primary',size:'md',onClick:doApprove},approved?'✓ تم الاعتماد':'اعتماد التوصية'),
+          h(Btn,{variant:'ghost',size:'sm',onClick:()=>setShowWhy(true)},'لماذا هذه التوصية؟'),
+          h(Btn,{variant:'ghost',size:'sm',onClick:()=>setSim('idle')},'تعديل السيناريو')
+        )
+      )
+    ),
+    showWhy&&h('div',{onClick:()=>setShowWhy(false),style:{position:'fixed',inset:0,background:'#000b',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}},
+      h('div',{className:'fi',onClick:e=>e.stopPropagation(),style:{background:C.deep,border:`1px solid ${C.border}`,borderRadius:12,padding:30,maxWidth:500,width:'90%',direction:'rtl'}},
+        h('h3',{style:{fontSize:18,fontWeight:700,color:C.white,marginBottom:18}},'لماذا أوصى مقدام بهذا القرار؟'),
+        ['ارتفاع احتمالية تجمع المياه في المواقع المحددة.','أهمية الطريق للحركة المرورية اليومية.','قصر الوقت المتبقي قبل بداية الأثر المتوقع.','توفر فرق ميدانية يمكن إعادة توجيهها بفاعلية.','المحاكاة تشير إلى انخفاض الأثر بنسبة 65% عند التدخل المبكر.'].map((r,i)=>
+          h('div',{key:i,style:{display:'flex',gap:12,marginBottom:12}},
+            h('div',{style:{width:22,height:22,background:C.purple+'44',borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:C.soft,fontWeight:700,flexShrink:0}},String(i+1).padStart(2,'0')),
+            h('p',{style:{fontSize:13,color:C.white,lineHeight:1.7}},r)
+          )
+        ),
+        h('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:12,marginTop:8,display:'flex',justifyContent:'space-between'}},
+          h('p',{style:{fontSize:10,color:C.tm,maxWidth:340}},'هذه التوصية ناتجة عن محاكاة النموذج الأولي باستخدام بيانات افتراضية.'),
+          h('div',{style:{fontSize:18,fontWeight:800,color:C.yellow}},'92%')
+        ),
+        h(Btn,{variant:'ghost',size:'sm',onClick:()=>setShowWhy(false),style:{marginTop:14,width:'100%'}},'إغلاق')
+      )
+    )
+  );
+};
+
+// ── RECOMMENDATIONS ─────────────────────────────────────
+const Recommendations=({approved})=>{
+  const [filter,setFilter]=useState('الكل');
+  const [statuses,setStatuses]=useState({r1:'pending',r2:'pending',r3:'pending',r4:'pending'});
+  const [detail,setDetail]=useState(null);
+  const recs=[
+    {id:'r1',loc:'طريق عرعر – رفحاء',pr:'حرج',action:'إرسال 3 فرق ميدانية استباقية',reason:'ارتفاع احتمالية تجمع المياه مع كثافة مرورية عالية',c:'92%',t:'16:10'},
+    {id:'r2',loc:'طريق الملك عبدالعزيز',pr:'مرتفع',action:'تحويل الحركة مؤقتًا',reason:'تقاطع حيوي قرب مناطق سكنية',c:'88%',t:'16:20'},
+    {id:'r3',loc:'موقع خدمي — عرعر',pr:'مرتفع',action:'رفع مستوى الجاهزية التشغيلية',reason:'احتمالية تأثر الخدمات المقدمة',c:'84%',t:'16:30'},
+    {id:'r4',loc:'طريق فرعي — رفحاء',pr:'متوسط',action:'تعزيز المراقبة الميدانية',reason:'مخاطر متوسطة قابلة للرصد',c:'74%',t:'17:00'},
+  ];
+  const filtered=recs.filter(r=>{const s=statuses[r.id];if(filter==='الكل')return true;if(filter==='تحتاج قرار')return s==='pending';if(filter==='معتمدة')return s==='approved'||(r.id==='r1'&&approved);if(filter==='مرفوضة')return s==='rejected';return true;});
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:4}},'التوصيات الاستباقية'),
+    h('p',{style:{fontSize:12,color:C.ts,marginBottom:16}},'توصيات مقدام بناءً على المحاكاة والتنبؤ'),
+    approved&&h('div',{style:{background:C.ok+'11',border:`1px solid ${C.ok}44`,borderRadius:8,padding:'10px 16px',marginBottom:16,display:'flex',gap:8,alignItems:'center'}},h('span',{style:{color:C.ok}},'✓'),h('span',{style:{fontSize:12,color:C.white}},'تم اعتماد التوصية الرئيسية — خطة الاستجابة محدّثة')),
+    h('div',{style:{display:'flex',gap:8,marginBottom:18}},
+      ['الكل','تحتاج قرار','معتمدة','مرفوضة'].map(f=>h('button',{key:f,onClick:()=>setFilter(f),style:{padding:'6px 16px',borderRadius:5,fontSize:12,fontFamily:'Arial,sans-serif',cursor:'pointer',background:filter===f?C.purple+'33':'transparent',border:`1px solid ${filter===f?C.purple:C.border}`,color:filter===f?C.white:C.ts}},f))
+    ),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:12}},
+      filtered.map(r=>{
+        const s=statuses[r.id];const ok=s==='approved'||(r.id==='r1'&&approved);
+        return h(Card,{key:r.id,style:{padding:18}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:14}},
+            h('div',{style:{flex:1}},
+              h('div',{style:{display:'flex',gap:10,alignItems:'center',marginBottom:8,flexWrap:'wrap'}},
+                h('span',{style:{fontSize:14,fontWeight:700,color:C.white}},r.loc),
+                h(Risk,{level:r.pr}),
+                ok&&h(Badge,{color:C.yellow,style:{color:C.navy,fontSize:9}},'✓ معتمدة'),
+                s==='rejected'&&h(Badge,{color:C.danger,style:{fontSize:9}},'مرفوضة')
+              ),
+              h('div',{style:{display:'flex',gap:20,flexWrap:'wrap'}},
+                h('div',null,h('span',{style:{fontSize:10,color:C.tm}},'الإجراء: '),h('span',{style:{fontSize:12,color:C.white}},r.action)),
+                h('div',null,h('span',{style:{fontSize:10,color:C.tm}},'الثقة: '),h('span',{style:{fontSize:12,color:C.soft,fontWeight:700}},r.c)),
+                h('div',null,h('span',{style:{fontSize:10,color:C.tm}},'التنفيذ: '),h('span',{style:{fontSize:12,color:C.white}},r.t))
+              ),
+              detail===r.id&&h('p',{style:{fontSize:12,color:C.ts,marginTop:10,lineHeight:1.7}},r.reason)
+            ),
+            h('div',{style:{display:'flex',gap:7,flexShrink:0}},
+              !ok&&s!=='rejected'&&h(Fragment,null,h(Btn,{variant:'success',size:'sm',onClick:()=>setStatuses(p=>({...p,[r.id]:'approved'}))},'اعتماد'),h(Btn,{variant:'danger',size:'sm',onClick:()=>setStatuses(p=>({...p,[r.id]:'rejected'}))},'رفض')),
+              h(Btn,{variant:'ghost',size:'sm',onClick:()=>setDetail(detail===r.id?null:r.id)},'التفاصيل')
+            )
+          )
+        );
+      }),
+      filtered.length===0&&h('div',{style:{textAlign:'center',padding:40,color:C.tm}},'لا توجد توصيات في هذا التصنيف')
+    )
+  );
+};
+
+// ── EVENTS ──────────────────────────────────────────────
+const Events=()=>{
+  const evs=[
+    {t:'15:30',title:'رصد مؤشرات مبكرة',desc:'بدء رصد مؤشرات هطول الأمطار في محطات المنطقة',done:true},
+    {t:'16:00',title:'ارتفاع مستوى الاحتمالية',desc:'ارتفاع احتمالية تجمع المياه إلى 74%',done:true},
+    {t:'16:30',title:'بداية الأثر المتوقع',desc:'توقع بداية تجمع المياه في المسارات الرئيسية',cur:true},
+    {t:'17:00',title:'ذروة التأثير',desc:'أعلى مستوى متوقع لتأثر الطرق والحركة المرورية',done:false},
+    {t:'18:30',title:'انخفاض التأثير',desc:'بدء انحسار تأثير الهطول وتعافي الطرق',done:false},
+  ];
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:4}},'مركز الأحداث'),
+    h('p',{style:{fontSize:12,color:C.ts,marginBottom:20}},'الجدول الزمني التشغيلي للحالة الحالية'),
+    evs.map((e,i)=>h('div',{key:i,style:{display:'flex',gap:18,marginBottom:20}},
+      h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center'}},
+        h('div',{style:{width:12,height:12,borderRadius:'50%',background:e.cur?C.yellow:e.done?C.soft:C.border,border:`2px solid ${e.cur?C.yellow:e.done?C.soft:C.border}`,boxShadow:e.cur?`0 0 0 5px ${C.yellow}22`:'none',flexShrink:0,zIndex:1}}),
+        i<evs.length-1&&h('div',{style:{width:1,flex:1,background:C.border,marginTop:4}})
+      ),
+      h('div',{style:{flex:1,paddingBottom:8}},
+        h('div',{style:{display:'flex',gap:10,alignItems:'center',marginBottom:5}},
+          h('span',{style:{fontSize:12,fontWeight:700,color:e.cur?C.yellow:C.tm,minWidth:38}},e.t),
+          h('span',{style:{fontSize:14,fontWeight:700,color:e.cur?C.yellow:e.done?C.white:C.ts}},e.title),
+          e.cur&&h(Badge,{color:C.yellow,style:{color:C.navy,fontSize:9,fontWeight:700}},'الآن'),
+          e.done&&h(Badge,{color:C.soft,style:{fontSize:9}},'مكتمل')
+        ),
+        h('p',{style:{fontSize:12,color:C.tm,lineHeight:1.65}},e.desc)
+      )
+    ))
+  );
+};
+
+// ── REPORTS ─────────────────────────────────────────────
+const Reports=()=>{
+  const [open,setOpen]=useState(null);
+  const reps=[
+    {id:'r1',title:'تقرير الحالة',icon:'⊞',sum:'ملخص الوضع الحالي وحالة التنبيهات النشطة.',content:['الحالة: نشطة','8 مواقع متأثرة','3 تنبيهات نشطة','آخر تحديث: 16:25','الخطورة الكلية: مرتفع']},
+    {id:'r2',title:'تقرير المخاطر',icon:'⚡',sum:'تقييم مستويات المخاطر لجميع المواقع.',content:['طريق عرعر–رفحاء: 94% حرج','طريق الملك عبدالعزيز: 91% مرتفع','موقع خدمي–عرعر: 87% مرتفع','طريق فرعي–رفحاء: 72% متوسط','العويقيلة: 61% منخفض']},
+    {id:'r3',title:'تقرير المحاكاة',icon:'⟆',sum:'نتائج المحاكاة المقارنة لسيناريوهات التدخل.',content:['السيناريو: إرسال فرق ميدانية','انخفاض الأثر: 65%','انخفاض زمن الاستجابة: 57%','تحسن الموارد: 42%','درجة الثقة: 92%']},
+    {id:'r4',title:'تقرير التوصيات',icon:'◈',sum:'قائمة التوصيات الاستباقية وحالة اعتمادها.',content:['إجمالي التوصيات: 4','تحتاج قرار: 3','معتمدة: 1','مرفوضة: 0','متوسط الثقة: 84.5%']},
+    {id:'r5',title:'تقرير أداء التنبؤ',icon:'◎',sum:'مقاييس دقة نموذج التنبؤ للجلسة الحالية.',content:['دقة التنبؤ: 91%','دقة المواقع: 88%','دقة التوقيت: 86%','دقة الأثر: 79%','النموذج: v1 تجريبي']},
+  ];
+  const sel=reps.find(r=>r.id===open);
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:4}},'التقارير'),
+    h('p',{style:{fontSize:12,color:C.ts,marginBottom:20}},'تقارير الحالة والأداء للجلسة الحالية'),
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}},
+      reps.map(r=>h(Card,{key:r.id,style:{padding:20,cursor:'pointer',border:`1px solid ${open===r.id?C.yellow+'44':C.border}`},onClick:()=>setOpen(open===r.id?null:r.id)},
+        h('div',{style:{fontSize:22,color:C.soft,marginBottom:12}},r.icon),
+        h('div',{style:{fontSize:14,fontWeight:700,color:C.white,marginBottom:7}},r.title),
+        h('p',{style:{fontSize:12,color:C.ts,lineHeight:1.65,marginBottom:14}},r.sum),
+        h(Btn,{variant:'ghost',size:'sm'},'عرض التقرير')
+      ))
+    ),
+    sel&&h('div',{onClick:()=>setOpen(null),style:{position:'fixed',inset:0,background:'#000b',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}},
+      h('div',{className:'fi',onClick:e=>e.stopPropagation(),style:{background:C.deep,border:`1px solid ${C.border}`,borderRadius:12,padding:30,maxWidth:460,width:'90%',direction:'rtl'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:18}},
+          h('h3',{style:{fontSize:18,fontWeight:700,color:C.white}},sel.title),
+          h('button',{onClick:()=>setOpen(null),style:{color:C.tm,fontSize:20,background:'none',border:'none',cursor:'pointer'}},'×')
+        ),
+        h('div',{style:{background:C.card,borderRadius:8,padding:16,marginBottom:14}},
+          sel.content.map((l,i)=>h('div',{key:i,style:{fontSize:13,color:C.white,padding:'7px 0',borderBottom:i<sel.content.length-1?`1px solid ${C.border}`:'none'}},l))
+        ),
+        h('p',{style:{fontSize:10,color:C.tm}},'تستخدم النسخة الحالية بيانات افتراضية لأغراض المحاكاة والعرض.')
+      )
+    )
+  );
+};
+
+// ── DATA SOURCES ─────────────────────────────────────────
+const DataSources=()=>{
+  const srcs=[
+    {n:'البيانات الجوية',upd:'منذ 3 دقائق',q:95,rec:'1,240'},
+    {n:'البيانات المكانية',upd:'منذ 8 دقائق',q:91,rec:'3,560'},
+    {n:'بيانات الطرق',upd:'منذ 12 دقيقة',q:88,rec:'890'},
+    {n:'بيانات المنشآت',upd:'منذ 15 دقيقة',q:86,rec:'210'},
+    {n:'البيانات التشغيلية',upd:'منذ 5 دقائق',q:92,rec:'450'},
+    {n:'البيانات التاريخية',upd:'منذ يوم',q:98,rec:'12,800'},
+  ];
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:4}},'مصادر البيانات'),
+    h('p',{style:{fontSize:12,color:C.ts,marginBottom:16}},'حالة مصادر البيانات المغذّية لنموذج مقدام'),
+    h('div',{style:{background:C.yellow+'0d',border:`1px solid ${C.yellow}33`,borderRadius:8,padding:'10px 16px',marginBottom:18,display:'flex',gap:8,alignItems:'center'}},h('span',{style:{color:C.yellow}},'◎'),h('span',{style:{fontSize:12,color:C.white}},'جميع البيانات المعروضة افتراضية ولا تعكس اتصالًا حقيقيًا بأنظمة حكومية.')),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+      srcs.map((s,i)=>h(Card,{key:i,style:{padding:16}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}},
+          h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+            h('div',{style:{width:7,height:7,borderRadius:'50%',background:C.ok}}),
+            h('span',{style:{fontSize:14,fontWeight:600,color:C.white}},s.n),
+            h(Badge,{color:C.ok,style:{fontSize:10}},'نشط')
+          ),
+          h('div',{style:{display:'flex',gap:20,alignItems:'center',flexWrap:'wrap'}},
+            h('div',null,h('span',{style:{fontSize:10,color:C.tm}},'آخر تحديث: '),h('span',{style:{fontSize:12,color:C.white}},s.upd)),
+            h('div',null,h('span',{style:{fontSize:10,color:C.tm}},'السجلات: '),h('span',{style:{fontSize:12,color:C.white}},s.rec)),
+            h('div',{style:{display:'flex',alignItems:'center',gap:7}},
+              h('span',{style:{fontSize:10,color:C.tm}},'الجودة: '),
+              h('div',{style:{width:56,height:4,background:C.border,borderRadius:2}},h('div',{style:{width:`${s.q}%`,height:'100%',background:C.soft,borderRadius:2}})),
+              h('span',{style:{fontSize:11,color:C.soft,fontWeight:700}},s.q+'%')
+            )
+          ),
+          h(Badge,{color:C.purple,style:{fontSize:10}},'بيانات افتراضية')
+        )
+      ))
+    )
+  );
+};
+
+// ── SETTINGS ────────────────────────────────────────────
+const Settings=()=>{
+  const [demo,setDemo]=useState(true);
+  const [alerts,setAlerts]=useState(true);
+  const Tog=({v,set})=>h('div',{onClick:()=>set(!v),style:{width:42,height:23,background:v?C.yellow:C.border,borderRadius:12,position:'relative',cursor:'pointer',transition:'all .2s'}},h('div',{style:{width:17,height:17,background:v?C.navy:C.tm,borderRadius:'50%',position:'absolute',top:3,right:v?3:'auto',left:v?'auto':3,transition:'all .2s'}}));
+  return h('div',{className:'fi',style:{padding:'18px 22px',overflowY:'auto',height:'calc(100vh - 53px)'}},
+    h('h2',{style:{fontSize:22,fontWeight:700,color:C.tp,marginBottom:20}},'الإعدادات'),
+    [
+      {title:'إعدادات العرض',items:[{label:'الوضع الداكن',sub:'واجهة داكنة للاستخدام في غرف العمليات',v:true,set:()=>{}}]},
+      {title:'التنبيهات',items:[{label:'تنبيهات الخطورة العالية',sub:'إشعارات فورية عند ارتفاع المخاطر',v:alerts,set:setAlerts}]},
+      {title:'مستويات المخاطر',items:[]},
+      {title:'وضع العرض التجريبي',items:[{label:'تفعيل الوضع التجريبي',sub:'عرض البيانات الافتراضية للمحاكاة',v:demo,set:setDemo}]},
+    ].map((sec,i)=>h(Card,{key:i,style:{padding:20,marginBottom:14}},
+      h('div',{style:{fontSize:14,fontWeight:700,color:C.white,marginBottom:14}},sec.title),
+      sec.items.length===0?h('div',{style:{display:'flex',gap:12,flexWrap:'wrap'}},['حرج','مرتفع','متوسط','منخفض'].map(l=>h(Risk,{key:l,level:l})),h('p',{style:{fontSize:11,color:C.tm,width:'100%',marginTop:8}},'مستويات المخاطر المعيارية — تُستخدم في التصنيف والتوصيات.')):
+      sec.items.map((item,j)=>h('div',{key:j,style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,h('div',{style:{fontSize:13,color:C.white}},item.label),h('div',{style:{fontSize:11,color:C.tm,marginTop:3}},item.sub)),
+        h(Tog,{v:item.v,set:item.set})
+      ))
+    )),
+    h('div',{style:{padding:'12px 16px',background:C.yellow+'0d',borderRadius:8,border:`1px solid ${C.yellow}33`}},
+      h('p',{style:{fontSize:11,color:C.tm,lineHeight:1.65}},'تستخدم النسخة الحالية بيانات افتراضية لأغراض المحاكاة والعرض، ويمكن ربط المنصة مستقبلًا بمصادر البيانات المصرح باستخدامها.')
+    )
+  );
+};
+
+// ── APP ─────────────────────────────────────────────────
+function App(){
+  const [view,setView]=useState('landing');
+  const [page,setPage]=useState('dashboard');
+  const [showHow,setShowHow]=useState(false);
+  const [approved,setApproved]=useState(false);
+
+  if(view==='landing')return h(Fragment,null,
+    h(Landing,{onEnter:()=>setView('app'),onDiscover:()=>setShowHow(true)}),
+    showHow&&h(HowModal,{onClose:()=>{setShowHow(false);setView('app');}})
+  );
+
+  const pages={
+    dashboard:()=>h(Dashboard,{onNav:setPage,approved}),
+    forecast:()=>h(Forecast),
+    map:()=>h(MapPage,{onNav:setPage}),
+    priorities:()=>h(Priorities,{onNav:setPage}),
+    whatif:()=>h(WhatIf,{onApprove:()=>setApproved(true),approved}),
+    recommendations:()=>h(Recommendations,{approved}),
+    events:()=>h(Events),
+    reports:()=>h(Reports),
+    datasources:()=>h(DataSources),
+    settings:()=>h(Settings),
+  };
+
+  const render=()=>{
+    try{return (pages[page]||pages.dashboard)();}
+    catch(e){return h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'calc(100vh - 53px)',gap:14}},h('div',{style:{fontSize:15,color:C.ts}},'تعذر تحميل هذا الجزء'),h(Btn,{variant:'ghost',onClick:()=>setPage('dashboard')},'إعادة المحاولة'));}
+  };
+
+  return h('div',{style:{display:'flex',minHeight:'100vh',direction:'rtl'}},
+    h(Sidebar,{active:page,onNav:setPage,approved}),
+    h('main',{style:{marginRight:210,flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h(Topbar,{pageId:page,approved,onBack:()=>setView('landing')}),
+      render()
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
