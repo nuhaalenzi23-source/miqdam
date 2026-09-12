@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مِقدام — منصة الرصد المبكر للمعلومات المضللة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #040C1F;
+    --bg-main: #060E24;
+    --bg-card: #0A1630;
+    --bg-card2: #0D1A38;
+    --bg-card3: #102040;
+    --accent-gold: #F5C842;
+    --accent-gold-dim: #C9A52A;
+    --accent-purple: #6B3FA0;
+    --accent-purple-light: #9B6FD0;
+    --accent-cyan: #1EC8E0;
+    --accent-green: #22C97A;
+    --accent-red: #E04060;
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-muted: rgba(255,255,255,0.38);
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(245,200,66,0.3);
+    --glow-purple: rgba(107,63,160,0.25);
+    --glow-gold: rgba(245,200,66,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    direction: rtl;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ===== SPLASH SCREEN ===== */
+  #splash {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg-deep);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .splash-stars {
+    position: absolute; inset: 0; overflow: hidden;
+    background: radial-gradient(ellipse at 30% 20%, rgba(107,63,160,0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(30,200,224,0.15) 0%, transparent 50%);
+  }
+  .splash-stars::before, .splash-stars::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 20% 75%, rgba(245,200,66,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(155,111,208,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 55%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 50%, rgba(255,255,255,0.6) 0%, transparent 100%);
+    background-size: 100% 100%;
+  }
+
+  .splash-logo { position: relative; z-index: 1; text-align: center; }
+  .splash-logo-ar {
+    font-size: 80px; font-weight: 800;
+    color: var(--text-primary);
+    text-shadow: 0 0 60px rgba(107,63,160,0.8), 0 0 120px rgba(107,63,160,0.4);
+    letter-spacing: -2px;
+    animation: splashPulse 2s ease-in-out infinite;
+  }
+  @keyframes splashPulse { 0%,100%{text-shadow:0 0 60px rgba(107,63,160,0.8),0 0 120px rgba(107,63,160,0.4)} 50%{text-shadow:0 0 80px rgba(155,111,208,1),0 0 160px rgba(107,63,160,0.6)} }
+
+  .splash-tagline {
+    font-size: 22px; font-weight: 400; color: var(--accent-gold);
+    margin-top: 12px; letter-spacing: 1px;
+  }
+  .splash-desc {
+    font-size: 15px; font-weight: 300; color: var(--text-secondary);
+    margin-top: 16px; max-width: 580px; line-height: 1.8; text-align: center;
+  }
+  .splash-btns { display: flex; gap: 16px; margin-top: 40px; justify-content: center; }
+  .btn-primary {
+    background: var(--accent-gold); color: #040C1F;
+    font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 700;
+    padding: 14px 36px; border-radius: 8px; border: none; cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 0 30px rgba(245,200,66,0.4);
+  }
+  .btn-primary:hover { background: #FFD700; box-shadow: 0 0 50px rgba(245,200,66,0.6); transform: translateY(-2px); }
+  .btn-secondary {
+    background: transparent; color: var(--text-primary);
+    font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 500;
+    padding: 14px 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+    transition: all 0.25s;
+  }
+  .btn-secondary:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  /* ===== APP LAYOUT ===== */
+  #app { display: none; min-height: 100vh; }
+  #app.active { display: flex; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 240px; min-height: 100vh;
+    background: #050D20;
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; right: 0; top: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo-text { font-size: 28px; font-weight: 800; color: var(--text-primary); }
+  .sidebar-logo-sub { font-size: 10px; font-weight: 300; color: var(--text-muted); line-height: 1.4; margin-top: 2px; }
+
+  .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 20px; cursor: pointer;
+    font-size: 14px; font-weight: 400; color: var(--text-secondary);
+    transition: all 0.2s; border-right: 3px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+  .nav-item.active {
+    color: var(--accent-gold); border-right-color: var(--accent-gold);
+    background: rgba(245,200,66,0.06); font-weight: 600;
+  }
+  .nav-icon { font-size: 16px; opacity: 0.7; }
+
+  .sidebar-status {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .prototype-badge { margin-top: 8px; font-size: 10px; color: var(--text-muted); background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 4px; text-align: center; }
+
+  /* ===== MAIN CONTENT ===== */
+  .main { flex: 1; margin-right: 240px; min-height: 100vh; }
+
+  /* ===== TOPBAR ===== */
+  .topbar {
+    background: rgba(5,13,32,0.95);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 60px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(10px);
+  }
+  .topbar-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-time { font-size: 12px; color: var(--text-secondary); }
+  .alert-badge {
+    background: var(--accent-red); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    animation: alertPulse 2s ease-in-out infinite;
+  }
+  @keyframes alertPulse { 0%,100%{box-shadow:0 0 0 0 rgba(224,64,96,0.4)} 50%{box-shadow:0 0 0 6px rgba(224,64,96,0)} }
+
+  /* ===== PAGE WRAPPER ===== */
+  .page { display: none; padding: 32px; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ===== SECTION TITLE ===== */
+  .section-title { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+  .section-sub { font-size: 14px; font-weight: 300; color: var(--text-secondary); margin-bottom: 24px; }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 16px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: rgba(245,200,66,0.2); }
+  .kpi-card.highlight { border-color: rgba(245,200,66,0.3); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245,200,66,0.04) 100%); }
+  .kpi-label { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-bottom: 10px; }
+  .kpi-value { font-size: 36px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+  .kpi-value.gold { color: var(--accent-gold); }
+  .kpi-value.red { color: var(--accent-red); }
+  .kpi-value.green { color: var(--accent-green); }
+  .kpi-unit { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-top: 4px; }
+  .kpi-accent { position: absolute; top: 0; right: 0; width: 3px; height: 100%; background: var(--accent-gold); border-radius: 0 12px 12px 0; opacity: 0.5; }
+  .kpi-card.highlight .kpi-accent { opacity: 1; }
+
+  /* ===== PIPELINE FLOW ===== */
+  .pipeline {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px 28px; margin-bottom: 32px;
+  }
+  .pipeline-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 20px; letter-spacing: 0.5px; }
+  .pipeline-steps { display: flex; align-items: center; gap: 0; }
+  .pipeline-step {
+    flex: 1; text-align: center; position: relative;
+  }
+  .pipeline-step-num {
+    font-size: 10px; font-weight: 700; color: var(--accent-gold);
+    margin-bottom: 6px; letter-spacing: 1px;
+  }
+  .pipeline-step-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--bg-card3); border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin: 0 auto 8px;
+    transition: all 0.3s;
+  }
+  .pipeline-step.done .pipeline-step-icon { border-color: var(--accent-gold); background: rgba(245,200,66,0.1); }
+  .pipeline-step-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .pipeline-step-sub { font-size: 11px; font-weight: 300; color: var(--text-muted); margin-top: 2px; }
+  .pipeline-arrow {
+    font-size: 16px; color: rgba(255,255,255,0.15); padding: 0 4px;
+    flex-shrink: 0; margin-top: -20px;
+  }
+
+  /* ===== PULSE (INFORMATION FLOW) ===== */
+  .pulse-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+  .pulse-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+    cursor: pointer; transition: all 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .pulse-card:hover { border-color: rgba(245,200,66,0.25); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .pulse-card.urgent {
+    border-color: rgba(245,200,66,0.4);
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245,200,66,0.05) 100%);
+  }
+  .pulse-card.urgent::before {
+    content: ''; position: absolute; top: 0; right: 0; left: 0; height: 2px;
+    background: var(--accent-gold);
+  }
+  .pulse-priority-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .priority-urgent { background: rgba(245,200,66,0.15); color: var(--accent-gold); border: 1px solid rgba(245,200,66,0.3); }
+  .priority-high { background: rgba(224,64,96,0.12); color: var(--accent-red); border: 1px solid rgba(224,64,96,0.25); }
+  .priority-medium { background: rgba(30,200,224,0.1); color: var(--accent-cyan); border: 1px solid rgba(30,200,224,0.2); }
+  .priority-low { background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border); }
+  .pulse-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; line-height: 1.4; }
+  .pulse-org { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; }
+  .pulse-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pulse-stat { }
+  .pulse-stat-label { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+  .pulse-stat-value { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .pulse-stat-value.up { color: var(--accent-red); }
+  .pulse-stat-value.ok { color: var(--accent-green); }
+  .pulse-meter { margin-top: 12px; }
+  .meter-bar { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+  .fill-gold { background: var(--accent-gold); }
+  .fill-red { background: var(--accent-red); }
+  .fill-cyan { background: var(--accent-cyan); }
+  .fill-green { background: var(--accent-green); }
+
+  /* ===== IMPACT ENGINE BOX ===== */
+  .engine-box {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(107,63,160,0.15) 100%);
+    border: 1px solid rgba(107,63,160,0.4); border-radius: 12px;
+    padding: 28px; margin-bottom: 32px; position: relative; overflow: hidden;
+  }
+  .engine-box::before {
+    content: ''; position: absolute; top: -40px; left: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(107,63,160,0.3) 0%, transparent 70%);
+  }
+  .engine-label { font-size: 11px; font-weight: 700; color: var(--accent-purple-light); letter-spacing: 2px; margin-bottom: 6px; }
+  .engine-title { font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; }
+  .engine-tagline { font-size: 14px; font-weight: 400; color: var(--accent-gold); font-style: italic; margin-bottom: 20px; }
+  .engine-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .engine-stat { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 14px; }
+  .engine-stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .engine-stat-value { font-size: 22px; font-weight: 800; color: var(--accent-gold); }
+  .engine-stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ===== CASE CARDS ===== */
+  .case-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px; cursor: pointer;
+    transition: all 0.25s; position: relative;
+  }
+  .case-card:hover { border-color: rgba(245,200,66,0.2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .case-card.urgent-case { border-right: 3px solid var(--accent-gold); }
+  .case-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .case-title { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1.4; flex: 1; margin-left: 12px; }
+  .case-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .case-meta-item { }
+  .case-meta-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .case-meta-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .case-actions { display: flex; gap: 8px; }
+  .btn-case {
+    font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 8px 16px; border-radius: 7px; border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-analyze { background: rgba(245,200,66,0.12); color: var(--accent-gold); border: 1px solid rgba(245,200,66,0.25); }
+  .btn-analyze:hover { background: rgba(245,200,66,0.2); }
+  .btn-verify { background: rgba(30,200,224,0.1); color: var(--accent-cyan); border: 1px solid rgba(30,200,224,0.2); }
+  .btn-verify:hover { background: rgba(30,200,224,0.18); }
+  .btn-escalate { background: rgba(224,64,96,0.1); color: var(--accent-red); border: 1px solid rgba(224,64,96,0.2); }
+  .btn-escalate:hover { background: rgba(224,64,96,0.18); }
+
+  /* ===== INTERVENTION INDEX ===== */
+  .index-circle { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .index-value { font-size: 32px; font-weight: 900; }
+  .index-max { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(4,12,31,0.92);
+    z-index: 500; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 880px; max-height: 90vh;
+    overflow-y: auto; position: relative;
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+  .modal-header {
+    padding: 24px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg-card); z-index: 10;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.06);
+    border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cairo', sans-serif;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+  .modal-body { padding: 28px; }
+
+  /* ===== SIMULATION PAGE ===== */
+  .sim-scenarios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .sim-scenario {
+    border-radius: 12px; padding: 20px; border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .sim-scenario.best { border-color: rgba(34,201,122,0.4); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(34,201,122,0.06) 100%); }
+  .sim-scenario.worst { border-color: rgba(224,64,96,0.3); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(224,64,96,0.04) 100%); }
+  .sim-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; }
+  .sim-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .sim-stat { margin-bottom: 8px; }
+  .sim-stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .sim-stat-value { font-size: 18px; font-weight: 800; }
+
+  .best-time-box {
+    background: linear-gradient(135deg, rgba(245,200,66,0.08) 0%, rgba(107,63,160,0.08) 100%);
+    border: 1px solid rgba(245,200,66,0.3); border-radius: 12px;
+    padding: 24px; text-align: center; margin-bottom: 24px;
+  }
+  .best-time-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .best-time-value { font-size: 40px; font-weight: 900; color: var(--accent-gold); }
+  .best-time-reason { font-size: 13px; font-weight: 300; color: var(--text-secondary); margin-top: 10px; line-height: 1.7; }
+
+  /* ===== VERIFY PAGE ===== */
+  .verify-status-box {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.04); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .verify-status-icon { font-size: 28px; }
+  .verify-status-label { font-size: 13px; color: var(--text-secondary); }
+  .verify-status-value { font-size: 17px; font-weight: 700; }
+  .suspicion-list { list-style: none; }
+  .suspicion-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px; color: var(--text-secondary);
+  }
+  .suspicion-list li::before { content: '⚑'; color: var(--accent-red); }
+
+  /* ===== RECOMMENDATION ===== */
+  .rec-box {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(34,201,122,0.05) 100%);
+    border: 1px solid rgba(34,201,122,0.25); border-radius: 12px;
+    padding: 24px; margin-bottom: 20px;
+  }
+  .rec-field { margin-bottom: 16px; }
+  .rec-field-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .rec-field-value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .rec-field-value.urgent-text { color: var(--accent-red); font-weight: 800; }
+  .rec-field-value.time-text { color: var(--accent-gold); }
+
+  .draft-area {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px;
+  }
+  .draft-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; }
+  .draft-content { font-size: 14px; font-weight: 400; color: var(--text-primary); line-height: 1.8; }
+
+  /* ===== COMMUNITY PAGE ===== */
+  .community-input-box {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; margin-bottom: 28px;
+  }
+  .community-input-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+  .url-input {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text-primary); font-family: 'Cairo', sans-serif; font-size: 14px;
+    padding: 14px 16px; border-radius: 8px; outline: none; direction: ltr; text-align: left;
+    transition: border-color 0.2s; margin-bottom: 14px;
+  }
+  .url-input:focus { border-color: var(--accent-gold); }
+  .url-input::placeholder { color: var(--text-muted); direction: rtl; text-align: right; }
+
+  .verify-result {
+    display: none; background: var(--bg-card2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    animation: fadeIn 0.4s ease;
+  }
+  .verify-result.show { display: block; }
+
+  /* ===== CASES TABLE ===== */
+  .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn {
+    font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 7px 16px; border-radius: 20px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text-primary); }
+  .filter-btn.active { background: rgba(245,200,66,0.1); border-color: rgba(245,200,66,0.35); color: var(--accent-gold); }
+
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: right; padding: 12px 16px;
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px; color: var(--text-primary);
+    vertical-align: middle;
+  }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+  /* ===== STATUS CHIPS ===== */
+  .chip {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .chip-urgent { background: rgba(245,200,66,0.12); color: var(--accent-gold); }
+  .chip-high { background: rgba(224,64,96,0.1); color: var(--accent-red); }
+  .chip-medium { background: rgba(30,200,224,0.1); color: var(--accent-cyan); }
+  .chip-low { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
+  .chip-verify { background: rgba(155,111,208,0.12); color: var(--accent-purple-light); }
+  .chip-done { background: rgba(34,201,122,0.1); color: var(--accent-green); }
+
+  /* ===== COMMAND CENTER ===== */
+  .cmd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .cmd-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .cmd-card-title { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .cmd-card-value { font-size: 28px; font-weight: 800; }
+  .cmd-list { list-style: none; }
+  .cmd-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .cmd-list li:last-child { border-bottom: none; }
+
+  /* ===== IMPACT METRICS ===== */
+  .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .impact-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .impact-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .impact-value { font-size: 30px; font-weight: 800; color: var(--accent-gold); }
+  .impact-unit { font-size: 13px; color: var(--text-secondary); }
+  .compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .compare-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+  .compare-before { border-color: rgba(224,64,96,0.25); }
+  .compare-after { border-color: rgba(34,201,122,0.25); }
+  .compare-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+  /* ===== TWIN PAGE (DIGITAL TWIN) ===== */
+  .twin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .twin-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .twin-scenario { display: flex; flex-direction: column; gap: 12px; }
+  .twin-var {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 14px;
+    font-size: 13px;
+  }
+  .twin-var-label { color: var(--text-secondary); }
+  .twin-var-control {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .twin-slider {
+    -webkit-appearance: none; width: 120px; height: 4px;
+    background: rgba(255,255,255,0.1); border-radius: 2px; outline: none;
+  }
+  .twin-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent-gold); cursor: pointer;
+  }
+  .twin-slider-val { font-size: 13px; font-weight: 700; color: var(--accent-gold); min-width: 30px; text-align: center; }
+
+  /* ===== ALERT BANNER ===== */
+  .alert-banner {
+    background: linear-gradient(135deg, rgba(224,64,96,0.1) 0%, rgba(245,200,66,0.05) 100%);
+    border: 1px solid rgba(224,64,96,0.3); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .alert-icon { font-size: 24px; flex-shrink: 0; }
+  .alert-content { flex: 1; }
+  .alert-title { font-size: 14px; font-weight: 700; color: var(--accent-red); margin-bottom: 4px; }
+  .alert-body { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .alert-action { flex-shrink: 0; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  /* ===== PROGRESS BAR ===== */
+  .prog-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .prog-label { font-size: 12px; color: var(--text-secondary); min-width: 130px; }
+  .prog-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 3px; }
+  .prog-val { font-size: 12px; font-weight: 700; color: var(--text-primary); min-width: 32px; text-align: left; }
+
+  /* ===== GRID HELPERS ===== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .mb4 { margin-bottom: 4px; }
+  .mb8 { margin-bottom: 8px; }
+  .mb16 { margin-bottom: 16px; }
+  .mb24 { margin-bottom: 24px; }
+  .bold { font-weight: 700; }
+  .gold { color: var(--accent-gold); }
+  .red { color: var(--accent-red); }
+  .green { color: var(--accent-green); }
+  .cyan { color: var(--accent-cyan); }
+  .muted { color: var(--text-muted); font-size: 11px; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .engine-grid { grid-template-columns: repeat(2, 1fr); }
+    .sim-scenarios { grid-template-columns: 1fr; }
+    .pulse-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .sidebar { width: 200px; }
+    .main { margin-right: 200px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .pulse-grid { grid-template-columns: 1fr; }
+    .cmd-grid { grid-template-columns: 1fr 1fr; }
+    .pipeline-steps { flex-wrap: wrap; }
+  }
+
+  /* ===== CHART MINI ===== */
+  .mini-chart { display: flex; align-items: flex-end; gap: 4px; height: 40px; }
+  .mini-bar { flex: 1; border-radius: 2px 2px 0 0; background: var(--accent-purple-light); opacity: 0.5; min-width: 6px; }
+  .mini-bar.highlight { background: var(--accent-gold); opacity: 1; }
+
+  /* ===== NOTIFICATION DOT ===== */
+  .nav-badge {
+    margin-right: auto; background: var(--accent-red); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SPLASH SCREEN ===== -->
+<div id="splash">
+  <div class="splash-stars"></div>
+  <div class="splash-logo">
+    <div class="splash-logo-ar">مِقدام</div>
+    <div class="splash-tagline">من الرصد... إلى الاستباق.</div>
+    <div class="splash-desc">ذكاء استباقي يساعد الجهات الحكومية على اكتشاف المعلومات المضللة، تقدير أثرها، وتحديد أفضل نقطة للتدخل قبل اتساع نطاقها.</div>
+    <div class="splash-btns">
+      <button class="btn-primary" onclick="enterApp()">دخول المنصة</button>
+      <button class="btn-secondary" onclick="enterAppDemo()">استكشاف حالة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">مِقدام</div>
+      <div class="sidebar-logo-sub">منصة الرصد المبكر للمعلومات المضللة</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('home')"><span class="nav-icon">⊞</span> الرئيسية</div>
+      <div class="nav-item" onclick="showPage('early')"><span class="nav-icon">◎</span> الرصد المبكر <span class="nav-badge">3</span></div>
+      <div class="nav-item" onclick="showPage('cases')"><span class="nav-icon">≡</span> الحالات</div>
+      <div class="nav-item" onclick="showPage('engine')"><span class="nav-icon">⚡</span> محرك الأثر</div>
+      <div class="nav-item" onclick="showPage('simulation')"><span class="nav-icon">◈</span> محاكاة الاستجابة</div>
+      <div class="nav-item" onclick="showPage('verify')"><span class="nav-icon">✓</span> التحقق</div>
+      <div class="nav-item" onclick="showPage('community')"><span class="nav-icon">◉</span> المجتمع</div>
+      <div class="nav-item" onclick="showPage('recommendations')"><span class="nav-icon">★</span> التوصيات</div>
+      <div class="nav-item" onclick="showPage('command')"><span class="nav-icon">▣</span> مركز القيادة</div>
+      <div class="nav-item" onclick="showPage('twin')"><span class="nav-icon">⊕</span> توأم الحالة</div>
+      <div class="nav-item" onclick="showPage('impact')"><span class="nav-icon">↑</span> أثر مِقدام</div>
+    </nav>
+    <div class="sidebar-status">
+      <div class="status-indicator"><div class="status-dot"></div> النظام يعمل</div>
+      <div class="prototype-badge">نموذج أولي — بيانات محاكاة</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">الرئيسية</div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="live-time"></div>
+        <div style="font-size:12px;color:var(--text-secondary)">آخر تحديث: الآن</div>
+        <div class="alert-badge">3 تنبيهات</div>
+      </div>
+    </div>
+
+    <!-- PAGE: HOME -->
+    <div id="page-home" class="page active" style="padding:32px">
+
+      <!-- ALERT BANNER -->
+      <div class="alert-banner">
+        <div class="alert-icon">⚠</div>
+        <div class="alert-content">
+          <div class="alert-title">تنبيه استباقي — حالة مرتبطة بخدمة حكومية</div>
+          <div class="alert-body">«إشاعة إيقاف خدمة حكومية» — مؤشر التدخل المبكر: 84 / 100 — الوقت المتوقع قبل ارتفاع الأولوية: 22 دقيقة</div>
+        </div>
+        <div class="alert-action">
+          <button class="btn-primary" style="font-size:13px;padding:10px 20px" onclick="showPage('simulation')">فتح الحالة</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card highlight">
+          <div class="kpi-accent"></div>
+          <div class="kpi-label">الحالات المرصودة</div>
+          <div class="kpi-value" id="kpi1">1,284</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">حالات تستوجب التحقق</div>
+          <div class="kpi-value gold" id="kpi2">37</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">حالات عالية الأولوية</div>
+          <div class="kpi-value red" id="kpi3">8</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">متوسط زمن الرصد</div>
+          <div class="kpi-value green">4</div>
+          <div class="kpi-unit">دقائق</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">متوسط زمن الاستجابة</div>
+          <div class="kpi-value">18</div>
+          <div class="kpi-unit">دقيقة</div>
+        </div>
+      </div>
+
+      <!-- ENGINE BOX -->
+      <div class="engine-box">
+        <div class="engine-label">الابتكار المحوري</div>
+        <div class="engine-title">محرك الأثر الاستباقي</div>
+        <div class="engine-tagline">لا يرصد ما حدث فقط... بل يتنبأ بما قد يحدث.</div>
+        <div class="engine-grid">
+          <div class="engine-stat"><div class="engine-stat-label">سيناريوهات محللة</div><div class="engine-stat-value">284</div><div class="engine-stat-sub">هذا الأسبوع</div></div>
+          <div class="engine-stat"><div class="engine-stat-label">دقة التنبؤ</div><div class="engine-stat-value">91%</div><div class="engine-stat-sub">في النماذج المحاكاة</div></div>
+          <div class="engine-stat"><div class="engine-stat-label">حالات استُبقت</div><div class="engine-stat-value">64%</div><div class="engine-stat-sub">قبل الانتشار العالي</div></div>
+          <div class="engine-stat"><div class="engine-stat-label">متوسط نقطة التدخل</div><div class="engine-stat-value">19 د</div><div class="engine-stat-sub">قبل الذروة</div></div>
+        </div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="pipeline mb24">
+        <div class="pipeline-title">آلية عمل مِقدام — رحلة الحالة</div>
+        <div class="pipeline-steps">
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">01</div>
+            <div class="pipeline-step-icon">◎</div>
+            <div class="pipeline-step-label">الرصد</div>
+            <div class="pipeline-step-sub">جمع المؤشرات</div>
+          </div>
+          <div class="pipeline-arrow">←</div>
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">02</div>
+            <div class="pipeline-step-icon">⚙</div>
+            <div class="pipeline-step-label">الفهم</div>
+            <div class="pipeline-step-sub">تحليل NLP</div>
+          </div>
+          <div class="pipeline-arrow">←</div>
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">03</div>
+            <div class="pipeline-step-icon">✓</div>
+            <div class="pipeline-step-label">التحقق</div>
+            <div class="pipeline-step-sub">المصادر الرسمية</div>
+          </div>
+          <div class="pipeline-arrow">←</div>
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">04</div>
+            <div class="pipeline-step-icon">◈</div>
+            <div class="pipeline-step-label">التنبؤ</div>
+            <div class="pipeline-step-sub">نمذجة الأثر</div>
+          </div>
+          <div class="pipeline-arrow">←</div>
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">05</div>
+            <div class="pipeline-step-icon">▲</div>
+            <div class="pipeline-step-label">الأولوية</div>
+            <div class="pipeline-step-sub">تحديد التدخل</div>
+          </div>
+          <div class="pipeline-arrow">←</div>
+          <div class="pipeline-step done">
+            <div class="pipeline-step-num">06</div>
+            <div class="pipeline-step-icon">★</div>
+            <div class="pipeline-step-label">التوصية</div>
+            <div class="pipeline-step-sub">مسودة الرد</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PULSE -->
+      <div class="section-title mb4">نبض المعلومات</div>
+      <div class="section-sub">تدفق الحالات الحية المرصودة — تحديث مستمر</div>
+      <div class="pulse-grid">
+        <div class="pulse-card urgent" onclick="showPage('simulation')">
+          <div class="pulse-priority-badge priority-urgent">● عاجل</div>
+          <div class="pulse-title">«إيقاف خدمة الدعم السكني ابتداءً من الشهر القادم»</div>
+          <div class="pulse-org">وزارة الإسكان</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value up">68%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value up">+24% / ساعتين</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value up">84</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">المتأثرون المحتملون</div><div class="pulse-stat-value">+12,000</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-gold" style="width:68%"></div></div></div>
+        </div>
+        <div class="pulse-card urgent" onclick="showPage('early')">
+          <div class="pulse-priority-badge priority-high">● مرتفع</div>
+          <div class="pulse-title">«توقف التسجيل في برنامج حساب المواطن مؤقتًا»</div>
+          <div class="pulse-org">وزارة الموارد البشرية</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value up">52%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value up">+18% / ساعة</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value up">76</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">المتأثرون المحتملون</div><div class="pulse-stat-value">+8,400</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-red" style="width:52%"></div></div></div>
+        </div>
+        <div class="pulse-card" onclick="showPage('early')">
+          <div class="pulse-priority-badge priority-medium">● متوسط</div>
+          <div class="pulse-title">«موعد تجديد الرخص التجارية تغيّر دون إشعار»</div>
+          <div class="pulse-org">وزارة التجارة</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value">38%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value">+9% / ساعة</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value">58</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">المتأثرون المحتملون</div><div class="pulse-stat-value">+3,200</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-cyan" style="width:38%"></div></div></div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-priority-badge priority-medium">● متوسط</div>
+          <div class="pulse-title">«رابط احتيالي ينتحل منصة أبشر لتجديد الجوازات»</div>
+          <div class="pulse-org">الأحوال المدنية</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value">44%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value">+14% / ساعة</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value">71</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">الاتجاه</div><div class="pulse-stat-value up">↑ تصاعدي</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-gold" style="width:44%"></div></div></div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-priority-badge priority-low">● منخفض</div>
+          <div class="pulse-title">«إلغاء منحة الطاقة الشمسية للمنازل في 2025»</div>
+          <div class="pulse-org">وزارة الطاقة</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value">21%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value ok">+3% / ساعة</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value">34</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">الاتجاه</div><div class="pulse-stat-value ok">↓ يتراجع</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-green" style="width:21%"></div></div></div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-priority-badge priority-low">● منخفض</div>
+          <div class="pulse-title">«خبر قديم: رسوم الخروج والعودة تضاعفت مجددًا»</div>
+          <div class="pulse-org">الجوازات</div>
+          <div class="pulse-stats">
+            <div class="pulse-stat"><div class="pulse-stat-label">الانتشار</div><div class="pulse-stat-value">17%</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">النمو</div><div class="pulse-stat-value ok">+2% / ساعة</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">مؤشر التدخل</div><div class="pulse-stat-value">28</div></div>
+            <div class="pulse-stat"><div class="pulse-stat-label">الاتجاه</div><div class="pulse-stat-value ok">↓ مستقر</div></div>
+          </div>
+          <div class="pulse-meter"><div class="meter-bar"><div class="meter-fill fill-green" style="width:17%"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: EARLY MONITORING -->
+    <div id="page-early" class="page" style="padding:32px">
+      <div class="section-title">الرصد المبكر</div>
+      <div class="section-sub">الحالات المرصودة حديثًا — مرتبة حسب مؤشر التدخل المبكر</div>
+
+      <!-- Demo case -->
+      <div class="case-card urgent-case" onclick="openModal('demo')">
+        <div class="case-header">
+          <div class="chip chip-urgent">عاجل</div>
+          <div class="case-title">«إشاعة إيقاف خدمة الدعم السكني — Demo»</div>
+        </div>
+        <div class="case-meta">
+          <div class="case-meta-item"><div class="case-meta-label">المصدر</div><div class="case-meta-value">منشور غير موثق</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">وقت الرصد</div><div class="case-meta-value">منذ 22 دقيقة</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">التفاعلات</div><div class="case-meta-value">4,218</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">معدل الانتشار</div><div class="case-meta-value gold">68%</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">سرعة النمو</div><div class="case-meta-value red">+24% / ساعتين</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الخدمة</div><div class="case-meta-value">الدعم السكني</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الجهة</div><div class="case-meta-value">وزارة الإسكان</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">مؤشر التدخل</div><div class="case-meta-value red bold">84 / 100</div></div>
+        </div>
+        <div class="case-actions">
+          <button class="btn-case btn-analyze" onclick="event.stopPropagation();showPage('engine')">تحليل الحالة</button>
+          <button class="btn-case btn-verify" onclick="event.stopPropagation();showPage('verify')">بدء التحقق</button>
+          <button class="btn-case btn-escalate" onclick="event.stopPropagation();escalateCase(this)">رفع الأولوية</button>
+        </div>
+      </div>
+
+      <div class="case-card" onclick="openModal('case2')">
+        <div class="case-header">
+          <div class="chip chip-high">مرتفع</div>
+          <div class="case-title">«توقف التسجيل في حساب المواطن مؤقتًا بسبب ترقية تقنية»</div>
+        </div>
+        <div class="case-meta">
+          <div class="case-meta-item"><div class="case-meta-label">المصدر</div><div class="case-meta-value">واتساب / تيلغرام</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">وقت الرصد</div><div class="case-meta-value">منذ 38 دقيقة</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">التفاعلات</div><div class="case-meta-value">2,881</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">معدل الانتشار</div><div class="case-meta-value gold">52%</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">سرعة النمو</div><div class="case-meta-value red">+18% / ساعة</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الخدمة</div><div class="case-meta-value">حساب المواطن</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الجهة</div><div class="case-meta-value">وزارة الموارد البشرية</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">مؤشر التدخل</div><div class="case-meta-value red bold">76 / 100</div></div>
+        </div>
+        <div class="case-actions">
+          <button class="btn-case btn-analyze" onclick="event.stopPropagation();showPage('engine')">تحليل الحالة</button>
+          <button class="btn-case btn-verify" onclick="event.stopPropagation();showPage('verify')">بدء التحقق</button>
+          <button class="btn-case btn-escalate" onclick="event.stopPropagation();escalateCase(this)">رفع الأولوية</button>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-header">
+          <div class="chip chip-medium">متوسط</div>
+          <div class="case-title">«رابط يدّعي أنه لتجديد بطاقة الهوية إلكترونيًا — محتوى منتحل»</div>
+        </div>
+        <div class="case-meta">
+          <div class="case-meta-item"><div class="case-meta-label">المصدر</div><div class="case-meta-value">تويتر / X</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">وقت الرصد</div><div class="case-meta-value">منذ 1 ساعة</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">التفاعلات</div><div class="case-meta-value">1,440</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">معدل الانتشار</div><div class="case-meta-value gold">44%</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">سرعة النمو</div><div class="case-meta-value">+14% / ساعة</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الخدمة</div><div class="case-meta-value">الهوية الوطنية</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">الجهة</div><div class="case-meta-value">الأحوال المدنية</div></div>
+          <div class="case-meta-item"><div class="case-meta-label">مؤشر التدخل</div><div class="case-meta-value gold bold">71 / 100</div></div>
+        </div>
+        <div class="case-actions">
+          <button class="btn-case btn-analyze" onclick="event.stopPropagation();showPage('engine')">تحليل الحالة</button>
+          <button class="btn-case btn-verify" onclick="event.stopPropagation();showPage('verify')">بدء التحقق</button>
+          <button class="btn-case btn-escalate" onclick="event.stopPropagation();escalateCase(this)">رفع الأولوية</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: CASES TABLE -->
+    <div id="page-cases" class="page" style="padding:32px">
+      <div class="section-title">الحالات</div>
+      <div class="section-sub">جميع الحالات المرصودة — فلترة وتصفية متقدمة</div>
+      <div class="filters">
+        <button class="filter-btn active" onclick="filterCases(this,'all')">الكل (12)</button>
+        <button class="filter-btn" onclick="filterCases(this,'urgent')">عاجل (2)</button>
+        <button class="filter-btn" onclick="filterCases(this,'high')">مرتفع (3)</button>
+        <button class="filter-btn" onclick="filterCases(this,'medium')">متوسط (4)</button>
+        <button class="filter-btn" onclick="filterCases(this,'low')">منخفض (3)</button>
+        <button class="filter-btn" onclick="filterCases(this,'verifying')">قيد التحقق (4)</button>
+        <button class="filter-btn" onclick="filterCases(this,'done')">تم التحقق (3)</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>الحالة</th>
+              <th>الخدمة</th>
+              <th>الجهة</th>
+              <th>الانتشار</th>
+              <th>النمو</th>
+              <th>مؤشر التدخل</th>
+              <th>الحالة</th>
+              <th>آخر تحديث</th>
+              <th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody id="cases-tbody">
+            <tr>
+              <td style="font-weight:600">إشاعة إيقاف الدعم السكني</td>
+              <td>الدعم السكني</td>
+              <td>الإسكان</td>
+              <td class="gold bold">68%</td>
+              <td class="red">+24%</td>
+              <td><span class="bold red">84</span></td>
+              <td><span class="chip chip-urgent">عاجل</span></td>
+              <td class="muted">منذ 22 د</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px" onclick="showPage('simulation')">فتح</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">توقف تسجيل حساب المواطن</td>
+              <td>حساب المواطن</td>
+              <td>الموارد البشرية</td>
+              <td class="gold bold">52%</td>
+              <td class="red">+18%</td>
+              <td><span class="bold red">76</span></td>
+              <td><span class="chip chip-high">مرتفع</span></td>
+              <td class="muted">منذ 38 د</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px" onclick="showPage('verify')">فتح</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">رابط انتحال منصة أبشر</td>
+              <td>الهوية الوطنية</td>
+              <td>الأحوال المدنية</td>
+              <td class="gold bold">44%</td>
+              <td>+14%</td>
+              <td><span class="bold gold">71</span></td>
+              <td><span class="chip chip-verify">قيد التحقق</span></td>
+              <td class="muted">منذ 1 س</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px" onclick="showPage('verify')">فتح</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">تغيير موعد تجديد الرخص</td>
+              <td>الرخص التجارية</td>
+              <td>التجارة</td>
+              <td>38%</td>
+              <td>+9%</td>
+              <td><span class="bold">58</span></td>
+              <td><span class="chip chip-medium">متوسط</span></td>
+              <td class="muted">منذ 2 س</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px">فتح</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">إلغاء منحة الطاقة الشمسية</td>
+              <td>الطاقة المتجددة</td>
+              <td>الطاقة</td>
+              <td>21%</td>
+              <td class="green">+3%</td>
+              <td><span class="bold">34</span></td>
+              <td><span class="chip chip-low">منخفض</span></td>
+              <td class="muted">منذ 4 س</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px">فتح</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">رسوم الخروج والعودة</td>
+              <td>خدمات الجوازات</td>
+              <td>الجوازات</td>
+              <td>17%</td>
+              <td class="green">+2%</td>
+              <td><span class="bold">28</span></td>
+              <td><span class="chip chip-done">تم التحقق</span></td>
+              <td class="muted">منذ 5 س</td>
+              <td><button class="btn-case btn-analyze" style="font-size:11px;padding:5px 10px">فتح</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE: ENGINE -->
+    <div id="page-engine" class="page" style="padding:32px">
+      <div class="section-title">محرك الأثر الاستباقي</div>
+      <div class="section-sub">تحليل شامل للحالة — الحالة النشطة: «إشاعة إيقاف الدعم السكني»</div>
+
+      <div class="grid-2 mb24">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">الادعاء المتداول</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text-primary);line-height:1.6;margin-bottom:16px">«تم إيقاف خدمة الدعم السكني ابتداءً من نهاية الشهر القادم وفق قرار وزاري جديد»</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><div class="muted mb4">الخدمة الحكومية</div><div style="font-weight:600">الدعم السكني</div></div>
+            <div><div class="muted mb4">الجهة المحتملة</div><div style="font-weight:600">وزارة الإسكان</div></div>
+            <div><div class="muted mb4">المستفيدون المحتملون</div><div style="font-weight:600;color:var(--accent-red)">+12,000</div></div>
+            <div><div class="muted mb4">حساسية الخدمة</div><div style="font-weight:600;color:var(--accent-red)">مرتفعة جدًا</div></div>
+          </div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid rgba(245,200,66,0.3);border-radius:12px;padding:24px;text-align:center">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">مؤشر التدخل المبكر</div>
+          <div style="font-size:72px;font-weight:900;color:var(--accent-gold);line-height:1;text-shadow:0 0 40px rgba(245,200,66,0.4)">84</div>
+          <div style="font-size:14px;color:var(--text-secondary);margin:4px 0 16px">من 100</div>
+          <div style="display:inline-block;background:rgba(224,64,96,0.15);color:var(--accent-red);font-size:14px;font-weight:700;padding:6px 20px;border-radius:20px;border:1px solid rgba(224,64,96,0.3)">تدخل عاجل</div>
+          <div style="margin-top:20px">
+            <div class="prog-row"><div class="prog-label">سرعة الانتشار</div><div class="prog-bar"><div class="prog-fill fill-red" style="width:92%"></div></div><div class="prog-val red">مرتفعة</div></div>
+            <div class="prog-row"><div class="prog-label">حساسية الخدمة</div><div class="prog-bar"><div class="prog-fill fill-red" style="width:88%"></div></div><div class="prog-val red">مرتفعة</div></div>
+            <div class="prog-row"><div class="prog-label">الأثر المحتمل</div><div class="prog-bar"><div class="prog-fill fill-red" style="width:85%"></div></div><div class="prog-val red">مرتفع</div></div>
+            <div class="prog-row"><div class="prog-label">احتمالية الاتساع</div><div class="prog-bar"><div class="prog-fill fill-gold" style="width:78%"></div></div><div class="prog-val gold">مرتفعة</div></div>
+            <div class="prog-row"><div class="prog-label">وجود انتحال</div><div class="prog-bar"><div class="prog-fill fill-gold" style="width:65%"></div></div><div class="prog-val gold">محتمل</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questions answered -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--accent-gold)">إجابات محرك الأثر — 13 سؤالًا تحليليًا</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">ما الذي يُتداول؟</div><div style="font-size:13px">ادعاء بإيقاف الدعم السكني</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">مؤشرات التضليل</div><div style="font-size:13px;color:var(--accent-red)">يوجد — صياغة انتحال</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">حجم الانتشار الحالي</div><div style="font-size:13px;color:var(--accent-gold)">68% — مرتفع</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">سرعة الانتشار</div><div style="font-size:13px;color:var(--accent-red)">+24% خلال ساعتين</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">المستفيدون المحتمل تأثرهم</div><div style="font-size:13px;color:var(--accent-red)">أكثر من 12,000 مستفيد</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">متى تصبح الحالة حرجة؟</div><div style="font-size:13px;color:var(--accent-gold)">خلال 22 دقيقة</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">الجهة التي يجب أن تتدخل</div><div style="font-size:13px">إدارة الاتصال المؤسسي / الإسكان</div></div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px"><div class="muted mb4">الإجراء الأنسب الآن</div><div style="font-size:13px;color:var(--accent-green)">توضيح رسمي عاجل</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px">
+        <button class="btn-primary" onclick="showPage('simulation')">فتح محاكاة الاستجابة</button>
+        <button class="btn-case btn-verify" style="padding:12px 24px;border-radius:8px" onclick="showPage('verify')">بدء التحقق الرسمي</button>
+      </div>
+    </div>
+
+    <!-- PAGE: SIMULATION -->
+    <div id="page-simulation" class="page" style="padding:32px">
+      <div class="section-title">محاكاة الاستجابة</div>
+      <div class="section-sub">«إشاعة إيقاف الدعم السكني» — مقارنة سيناريوهات التدخل</div>
+
+      <div class="sim-scenarios">
+        <div class="sim-scenario worst">
+          <div class="sim-label red">السيناريو الأول</div>
+          <div class="sim-title">عدم التدخل</div>
+          <div class="sim-stat"><div class="sim-stat-label">الانتشار بعد 6 ساعات</div><div class="sim-stat-value red">88%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">الانتشار بعد 24 ساعة</div><div class="sim-stat-value red">97%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">المستفيدون المتأثرون</div><div class="sim-stat-value red">+34,000</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">الأثر المتوقع</div><div class="sim-stat-value red">بالغ الخطورة</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">فقدان الثقة</div><div class="sim-stat-value red">مرتفع جدًا</div></div>
+        </div>
+        <div class="sim-scenario" style="border-color:rgba(245,200,66,0.2)">
+          <div class="sim-label gold">السيناريو الثاني</div>
+          <div class="sim-title">رد رسمي بعد ساعتين</div>
+          <div class="sim-stat"><div class="sim-stat-label">الانتشار المتوقع</div><div class="sim-stat-value gold">74%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">المستفيدون المتأثرون</div><div class="sim-stat-value gold">+18,000</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">نسبة خفض الانتشار</div><div class="sim-stat-value gold">-33%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">الأثر المتوقع</div><div class="sim-stat-value gold">متوسط</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">فقدان الثقة</div><div class="sim-stat-value gold">متوسط</div></div>
+        </div>
+        <div class="sim-scenario best">
+          <div class="sim-label green">السيناريو الثالث</div>
+          <div class="sim-title">تدخل استباقي خلال 15 دقيقة</div>
+          <div class="sim-stat"><div class="sim-stat-label">الانتشار المتوقع</div><div class="sim-stat-value green">31%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">المستفيدون المتأثرون</div><div class="sim-stat-value green">+4,200</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">نسبة خفض الانتشار</div><div class="sim-stat-value green">-63%</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">الأثر المتوقع</div><div class="sim-stat-value green">محدود</div></div>
+          <div class="sim-stat"><div class="sim-stat-label">النتيجة المتوقعة</div><div class="sim-stat-value green">احتواء مبكر</div></div>
+        </div>
+      </div>
+
+      <!-- BEST INTERVENTION TIME -->
+      <div class="best-time-box">
+        <div class="best-time-label">أفضل نقطة تدخل</div>
+        <div class="best-time-value">الآن — خلال 22 دقيقة</div>
+        <div class="best-time-reason">
+          احتمالية اتساع الانتشار ترتفع خلال الساعة القادمة، بينما يُتوقع خفض الأثر بنسبة <strong style="color:var(--accent-gold)">63%</strong> عند التدخل قبل تجاوز مؤشر الانتشار 75%.
+        </div>
+      </div>
+
+      <!-- IMPACT MAP -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:15px;font-weight:700">خريطة الأثر المحاكاة</div>
+          <div class="prototype-badge" style="display:inline-block">بيانات محاكاة — نموذج أولي</div>
+        </div>
+        <!-- SVG Map placeholder -->
+        <svg viewBox="0 0 600 280" style="width:100%;max-height:220px" xmlns="http://www.w3.org/2000/svg">
+          <rect width="600" height="280" fill="#0A1630" rx="8"/>
+          <!-- Saudi Arabia shape approximation -->
+          <path d="M 120 60 L 200 40 L 320 50 L 420 60 L 480 100 L 500 160 L 460 220 L 400 240 L 320 230 L 240 220 L 160 200 L 100 160 L 90 120 Z" fill="#0D1A38" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+          <!-- Regions highlight -->
+          <circle cx="280" cy="130" r="40" fill="rgba(224,64,96,0.15)" stroke="rgba(224,64,96,0.4)" stroke-width="1"/>
+          <circle cx="200" cy="160" r="30" fill="rgba(245,200,66,0.1)" stroke="rgba(245,200,66,0.3)" stroke-width="1"/>
+          <circle cx="360" cy="110" r="25" fill="rgba(245,200,66,0.08)" stroke="rgba(245,200,66,0.2)" stroke-width="1"/>
+          <circle cx="160" cy="100" r="20" fill="rgba(30,200,224,0.07)" stroke="rgba(30,200,224,0.2)" stroke-width="1"/>
+          <!-- Labels -->
+          <text x="280" y="134" text-anchor="middle" fill="white" font-size="10" font-family="Cairo">الرياض</text>
+          <text x="200" y="164" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" font-family="Cairo">جدة</text>
+          <text x="360" y="114" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" font-family="Cairo">الدمام</text>
+          <text x="160" y="104" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" font-family="Cairo">المدينة</text>
+          <!-- Legend -->
+          <circle cx="30" cy="30" r="6" fill="rgba(224,64,96,0.5)" stroke="rgba(224,64,96,0.8)" stroke-width="1"/>
+          <text x="42" y="34" fill="rgba(255,255,255,0.6)" font-size="10" font-family="Cairo">أثر مرتفع</text>
+          <circle cx="30" cy="52" r="6" fill="rgba(245,200,66,0.3)" stroke="rgba(245,200,66,0.6)" stroke-width="1"/>
+          <text x="42" y="56" fill="rgba(255,255,255,0.6)" font-size="10" font-family="Cairo">أثر متوسط</text>
+          <circle cx="30" cy="74" r="6" fill="rgba(30,200,224,0.2)" stroke="rgba(30,200,224,0.4)" stroke-width="1"/>
+          <text x="42" y="78" fill="rgba(255,255,255,0.6)" font-size="10" font-family="Cairo">أثر منخفض</text>
+        </svg>
+      </div>
+
+      <div style="display:flex;gap:12px">
+        <button class="btn-primary" onclick="showPage('verify')">الانتقال للتحقق</button>
+        <button class="btn-case btn-analyze" style="padding:12px 24px;border-radius:8px" onclick="showPage('recommendations')">عرض التوصية</button>
+      </div>
+    </div>
+
+    <!-- PAGE: VERIFY -->
+    <div id="page-verify" class="page" style="padding:32px">
+      <div class="section-title">التحقق</div>
+      <div class="section-sub">تحقق ماذا وجد مِقدام — الحالة: «إشاعة إيقاف الدعم السكني»</div>
+
+      <div class="grid-2 mb24">
+        <div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+            <div class="muted mb8">الادعاء المرصود</div>
+            <div style="font-size:15px;font-weight:600;line-height:1.7;color:var(--text-primary)">«تم إيقاف خدمة الدعم السكني ابتداءً من نهاية الشهر القادم وفق قرار وزاري جديد»</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+            <div class="muted mb8">ماذا وجد مِقدام؟</div>
+            <div style="font-size:14px;font-weight:400;line-height:1.8;color:var(--text-secondary)">المحتوى المتداول يدّعي وجود قرار رسمي بإيقاف الخدمة. لا يوجد تطابق مع أي إعلان رسمي صادر عن وزارة الإسكان. صياغة المحتوى تتضمن مؤشرات انتحال لأسلوب الإعلانات الرسمية.</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+            <div class="muted mb8">المصدر الرسمي المرجعي</div>
+            <div style="font-size:14px;font-weight:600;color:var(--accent-cyan)">موقع وزارة الإسكان الرسمي — لا يوجد أي إعلان مطابق</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">آخر تحديث رسمي: لا يوجد قرار يتطابق مع الادعاء المتداول</div>
+          </div>
+        </div>
+        <div>
+          <div class="verify-status-box" style="margin-bottom:16px">
+            <div class="verify-status-icon">🔍</div>
+            <div>
+              <div class="verify-status-label">حالة التحقق</div>
+              <div class="verify-status-value gold" id="verify-status">قيد التحقق</div>
+            </div>
+            <div style="margin-right:auto">
+              <select id="verify-select" onchange="updateVerifyStatus()" style="background:var(--bg-card3);color:var(--text-primary);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px">
+                <option value="verifying">قيد التحقق</option>
+                <option value="misleading">مضلل</option>
+                <option value="true">صحيح</option>
+                <option value="impersonation">منتحل</option>
+                <option value="unverified">غير متحقق</option>
+              </select>
+            </div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="muted">درجة الثقة</div>
+              <div style="font-size:28px;font-weight:900;color:var(--accent-gold)">91%</div>
+            </div>
+            <div class="meter-bar"><div class="meter-fill fill-gold" style="width:91%"></div></div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid rgba(224,64,96,0.2);border-radius:12px;padding:20px">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-red);margin-bottom:12px">أسباب الاشتباه</div>
+            <ul class="suspicion-list">
+              <li>لا يوجد إعلان رسمي مطابق من وزارة الإسكان.</li>
+              <li>صياغة المحتوى توحي بانتحال جهة رسمية.</li>
+              <li>ارتفاع معدل الانتشار بشكل مفاجئ.</li>
+              <li>تعارض مع آخر تحديث رسمي للخدمة.</li>
+            </ul>
+            <div style="margin-top:14px;font-size:12px;color:var(--text-muted);background:rgba(255,255,255,0.03);padding:10px;border-radius:8px">
+              ⚠ ملاحظة: هذه مؤشرات اشتباه وتحتاج إلى تحقق بشري. لا يُصدر مِقدام حكمًا قطعيًا بدون تحقق رسمي.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px">
+        <button class="btn-primary" onclick="showPage('recommendations')">عرض التوصية الذكية</button>
+      </div>
+    </div>
+
+    <!-- PAGE: COMMUNITY -->
+    <div id="page-community" class="page" style="padding:32px">
+      <div class="section-title">المجتمع</div>
+      <div class="section-sub">ساعدنا في التحقق من صحة الأخبار والمنشورات المتداولة</div>
+
+      <div class="community-input-box">
+        <div class="community-input-title">«ساعدنا في التحقق من صحة الخبر»</div>
+        <input class="url-input" id="community-url" placeholder="ضع رابط الخبر أو المنشور هنا..." type="text"/>
+        <div style="display:flex;gap:12px">
+          <button class="btn-primary" onclick="communityVerify()">تحقق من الخبر</button>
+          <button class="btn-secondary" onclick="showReportModal()">الإبلاغ عن محتوى منتحل لجهة رسمية</button>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--text-muted)">يساعد بلاغك مِقدام على اكتشاف المعلومات المضللة مبكرًا.</div>
+      </div>
+
+      <div id="community-result" class="verify-result">
+        <div style="font-size:16px;font-weight:700;margin-bottom:18px;color:var(--accent-gold)">نتيجة التحقق المحاكاة</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="muted mb4">المصدر</div><div style="font-weight:600;margin-bottom:12px" id="cr-source">—</div>
+            <div class="muted mb4">تاريخ النشر</div><div style="font-weight:600;margin-bottom:12px">غير محدد</div>
+            <div class="muted mb4">الخدمة الحكومية المرتبطة</div><div style="font-weight:600;margin-bottom:12px">بحسب المحتوى</div>
+            <div class="muted mb4">مؤشر الاشتباه</div><div style="font-size:22px;font-weight:900;color:var(--accent-gold)">72 / 100</div>
+          </div>
+          <div>
+            <div class="muted mb4">نتيجة التحقق</div><div style="font-size:15px;font-weight:700;color:var(--accent-gold);margin-bottom:12px">يحتاج إلى تحقق رسمي</div>
+            <div class="muted mb4">درجة الثقة</div><div style="font-size:22px;font-weight:900;color:var(--accent-gold);margin-bottom:12px">78%</div>
+            <div class="muted mb4">التوصية</div><div style="font-size:14px;color:var(--text-secondary);line-height:1.6">الرجوع إلى المصادر الرسمية قبل مشاركة المحتوى. تم إحالة الحالة لمراجعة مِقدام.</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:rgba(34,201,122,0.07);border:1px solid rgba(34,201,122,0.2);border-radius:8px;font-size:13px;color:var(--accent-green)">
+          ✓ تم استلام بلاغك وإضافة الحالة لقائمة الرصد. شكرًا لمساهمتك.
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: RECOMMENDATIONS -->
+    <div id="page-recommendations" class="page" style="padding:32px">
+      <div class="section-title">التوصية الذكية</div>
+      <div class="section-sub">التوصية التشغيلية المقترحة — مبنية على تحليل محرك الأثر الاستباقي</div>
+
+      <div class="rec-box mb24">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+          <div class="rec-field"><div class="rec-field-label">الأولوية</div><div class="rec-field-value urgent-text">عاجلة</div></div>
+          <div class="rec-field"><div class="rec-field-label">الجهة المعنية</div><div class="rec-field-value">إدارة الاتصال المؤسسي — وزارة الإسكان</div></div>
+          <div class="rec-field"><div class="rec-field-label">التوقيت المقترح</div><div class="rec-field-value time-text">خلال 15 دقيقة</div></div>
+          <div class="rec-field"><div class="rec-field-label">نوع الإجراء</div><div class="rec-field-value">توضيح رسمي عبر القنوات المعتمدة</div></div>
+        </div>
+        <div class="rec-field" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <div class="rec-field-label">الإجراء المقترح</div>
+          <div class="rec-field-value" style="font-size:14px;font-weight:400;line-height:1.8;color:var(--text-secondary)">
+            التحقق من الادعاء مع الجهة المختصة ثم إصدار توضيح رسمي عبر القنوات المعتمدة (موقع الوزارة الرسمي، حساباتها على منصات التواصل الاجتماعي). يُنصح بالتنسيق مع إدارة الاتصال الحكومي قبل النشر.
+          </div>
+        </div>
+        <div class="rec-field">
+          <div class="rec-field-label">سبب التوصية</div>
+          <div class="rec-field-value" style="font-size:13px;font-weight:400;color:var(--text-muted);line-height:1.7">
+            ارتفاع سرعة الانتشار (+24% خلال ساعتين) وارتباط المحتوى بخدمة حكومية عالية الحساسية تخدم أكثر من 12,000 مستفيد محتمل.
+          </div>
+        </div>
+      </div>
+
+      <!-- Draft -->
+      <div class="draft-area mb24" id="draft-area" style="display:none">
+        <div class="draft-title">مسودة الرد الرسمي المقترحة — للمراجعة والتعديل قبل النشر</div>
+        <div class="draft-content">
+          بسم الله الرحمن الرحيم<br><br>
+          توضح وزارة الإسكان للمستفيدين الكرام أنه لا صحة للمعلومات المتداولة بشأن إيقاف خدمة الدعم السكني.<br><br>
+          خدمة الدعم السكني مستمرة بشكل منتظم وفق الأنظمة المعمول بها، ولم يصدر أي قرار بتعليقها أو إيقافها.<br><br>
+          تؤكد الوزارة على ضرورة التثبت من المعلومات عبر قنواتها الرسمية فقط، وعدم تداول المحتوى غير الموثق.<br><br>
+          للاستفسار والمتابعة:<br>
+          الموقع الرسمي | حسابات الوزارة المعتمدة | مركز الاتصال
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn-primary" style="font-size:13px;padding:10px 20px">نسخ المسودة</button>
+          <button class="btn-case btn-verify" style="font-size:13px;padding:10px 20px;border-radius:8px">إرسال للمراجعة</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="generateDraft()" id="draft-btn">إنشاء مسودة الرد الرسمي</button>
+    </div>
+
+    <!-- PAGE: COMMAND CENTER -->
+    <div id="page-command" class="page" style="padding:32px">
+      <div class="section-title">مركز القيادة</div>
+      <div class="section-sub">صورة شاملة للحالة الحالية — نظرة متكاملة لمنظومة مِقدام</div>
+
+      <div class="cmd-grid">
+        <div class="cmd-card"><div class="cmd-card-title">إجمالي الحالات</div><div class="cmd-card-value gold">1,284</div></div>
+        <div class="cmd-card"><div class="cmd-card-title">الحالات الحرجة</div><div class="cmd-card-value red">8</div></div>
+        <div class="cmd-card"><div class="cmd-card-title">الحالات المحتواة مبكرًا</div><div class="cmd-card-value green">64%</div></div>
+        <div class="cmd-card"><div class="cmd-card-title">متوسط زمن الاستجابة</div><div class="cmd-card-value">18 د</div></div>
+        <div class="cmd-card"><div class="cmd-card-title">دقة التصنيف</div><div class="cmd-card-value green">92%</div></div>
+        <div class="cmd-card"><div class="cmd-card-title">جهات مرتبطة بالحالات</div><div class="cmd-card-value">7</div></div>
+      </div>
+
+      <div class="grid-2 mb24">
+        <div class="cmd-card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">الخدمات الأكثر تعرضًا</div>
+          <ul class="cmd-list">
+            <li><span>الدعم السكني</span><span class="chip chip-urgent">عاجل</span></li>
+            <li><span>حساب المواطن</span><span class="chip chip-high">مرتفع</span></li>
+            <li><span>الهوية الوطنية</span><span class="chip chip-medium">متوسط</span></li>
+            <li><span>الرخص التجارية</span><span class="chip chip-medium">متوسط</span></li>
+            <li><span>خدمات الجوازات</span><span class="chip chip-low">منخفض</span></li>
+          </ul>
+        </div>
+        <div class="cmd-card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">أسرع الحالات انتشارًا</div>
+          <ul class="cmd-list">
+            <li><span>إيقاف الدعم السكني</span><span class="red bold">+24%/س</span></li>
+            <li><span>توقف حساب المواطن</span><span class="red bold">+18%/س</span></li>
+            <li><span>انتحال منصة أبشر</span><span class="gold bold">+14%/س</span></li>
+            <li><span>تغيير موعد الرخص</span><span class="bold">+9%/س</span></li>
+            <li><span>إلغاء منحة الطاقة</span><span class="green bold">+3%/س</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="pipeline">
+        <div class="pipeline-title">مسار معالجة الحالات — إجمالي هذا الأسبوع</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:12px">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">الرصد</div>
+            <div style="font-size:32px;font-weight:800;color:var(--accent-cyan)">284</div>
+            <div class="mini-chart" style="justify-content:center">
+              <div class="mini-bar" style="height:60%"></div><div class="mini-bar" style="height:75%"></div><div class="mini-bar" style="height:85%"></div><div class="mini-bar highlight" style="height:100%"></div>
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">التحقق</div>
+            <div style="font-size:32px;font-weight:800;color:var(--accent-purple-light)">127</div>
+            <div class="mini-chart" style="justify-content:center">
+              <div class="mini-bar" style="height:55%"></div><div class="mini-bar" style="height:65%"></div><div class="mini-bar" style="height:80%"></div><div class="mini-bar highlight" style="height:90%"></div>
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">القرار</div>
+            <div style="font-size:32px;font-weight:800;color:var(--accent-gold)">89</div>
+            <div class="mini-chart" style="justify-content:center">
+              <div class="mini-bar" style="height:40%"></div><div class="mini-bar" style="height:55%"></div><div class="mini-bar" style="height:70%"></div><div class="mini-bar highlight" style="height:85%"></div>
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">الاستجابة</div>
+            <div style="font-size:32px;font-weight:800;color:var(--accent-green)">74</div>
+            <div class="mini-chart" style="justify-content:center">
+              <div class="mini-bar" style="height:35%"></div><div class="mini-bar" style="height:50%"></div><div class="mini-bar" style="height:65%"></div><div class="mini-bar highlight" style="height:80%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: DIGITAL TWIN -->
+    <div id="page-twin" class="page" style="padding:32px">
+      <div class="section-title">توأم الحالة</div>
+      <div class="section-sub">نموذج رقمي تفاعلي — غيّر متغيرًا وشاهد كيف يتغير الأثر المحاكى</div>
+
+      <div class="twin-grid mb24">
+        <div class="twin-card">
+          <div style="font-size:15px;font-weight:700;margin-bottom:16px">متغيرات السيناريو</div>
+          <div class="twin-scenario">
+            <div class="twin-var">
+              <div class="twin-var-label">تأخير الرد (دقائق)</div>
+              <div class="twin-var-control">
+                <input type="range" class="twin-slider" min="0" max="120" value="22" id="slider-delay" oninput="updateTwin()">
+                <div class="twin-slider-val" id="val-delay">22</div>
+              </div>
+            </div>
+            <div class="twin-var">
+              <div class="twin-var-label">معدل الانتشار (%)</div>
+              <div class="twin-var-control">
+                <input type="range" class="twin-slider" min="10" max="100" value="68" id="slider-spread" oninput="updateTwin()">
+                <div class="twin-slider-val" id="val-spread">68</div>
+              </div>
+            </div>
+            <div class="twin-var">
+              <div class="twin-var-label">حساسية الخدمة</div>
+              <div class="twin-var-control">
+                <input type="range" class="twin-slider" min="1" max="10" value="9" id="slider-sensitivity" oninput="updateTwin()">
+                <div class="twin-slider-val" id="val-sensitivity">9</div>
+              </div>
+            </div>
+            <div class="twin-var">
+              <div class="twin-var-label">عدد المستفيدين (×1000)</div>
+              <div class="twin-var-control">
+                <input type="range" class="twin-slider" min="1" max="50" value="12" id="slider-users" oninput="updateTwin()">
+                <div class="twin-slider-val" id="val-users">12</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="twin-card">
+          <div style="font-size:15px;font-weight:700;margin-bottom:16px">النتائج المحاكاة</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px">
+              <div class="muted mb4">الأثر المتوقع</div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-red)" id="twin-impact">بالغ</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px">
+              <div class="muted mb4">مؤشر التدخل</div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-gold)" id="twin-index">84</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px">
+              <div class="muted mb4">الانتشار المتوقع</div>
+              <div style="font-size:22px;font-weight:800" id="twin-reach">88%</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px">
+              <div class="muted mb4">المتأثرون المتوقعون</div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-red)" id="twin-affected">34,000</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:14px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.2);border-radius:8px">
+            <div class="muted mb4">توصية محدّثة</div>
+            <div style="font-size:13px;color:var(--text-secondary)" id="twin-rec">تدخل عاجل — الوقت الحرج يقترب.</div>
+          </div>
+          <div class="prototype-badge" style="margin-top:12px;text-align:center">النتائج محاكاة بناءً على المتغيرات</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: IMPACT -->
+    <div id="page-impact" class="page" style="padding:32px">
+      <div class="section-title">أثر مِقدام</div>
+      <div class="section-sub">مؤشرات قياس الأداء والأثر — نموذج محاكاة</div>
+
+      <div class="impact-grid mb24">
+        <div class="impact-card"><div class="impact-label">متوسط زمن الرصد</div><div class="impact-value">4<span class="impact-unit"> دقائق</span></div></div>
+        <div class="impact-card"><div class="impact-label">متوسط زمن الإحالة</div><div class="impact-value">7<span class="impact-unit"> دقائق</span></div></div>
+        <div class="impact-card"><div class="impact-label">متوسط زمن الاستجابة</div><div class="impact-value">18<span class="impact-unit"> دقيقة</span></div></div>
+        <div class="impact-card"><div class="impact-label">حالات مكتشفة مبكرًا</div><div class="impact-value">78<span class="impact-unit">%</span></div></div>
+        <div class="impact-card"><div class="impact-label">حالات محتواة قبل الانتشار العالي</div><div class="impact-value">64<span class="impact-unit">%</span></div></div>
+        <div class="impact-card"><div class="impact-label">دقة تصنيف الحالات</div><div class="impact-value">92<span class="impact-unit">%</span></div></div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-card compare-before">
+          <div class="compare-title red">قبل مِقدام</div>
+          <div class="compare-item"><span>زمن اكتشاف الحالة</span><span class="red bold">4–6 ساعات</span></div>
+          <div class="compare-item"><span>زمن الاستجابة</span><span class="red bold">3–8 ساعات</span></div>
+          <div class="compare-item"><span>نسبة الاحتواء المبكر</span><span class="red bold">22%</span></div>
+          <div class="compare-item"><span>دقة تحديد الجهة</span><span class="red bold">61%</span></div>
+          <div class="compare-item"><span>توافر توصية تشغيلية</span><span class="red bold">لا يوجد</span></div>
+        </div>
+        <div class="compare-card compare-after">
+          <div class="compare-title green">بعد مِقدام</div>
+          <div class="compare-item"><span>زمن اكتشاف الحالة</span><span class="green bold">4 دقائق</span></div>
+          <div class="compare-item"><span>زمن الاستجابة</span><span class="green bold">18 دقيقة</span></div>
+          <div class="compare-item"><span>نسبة الاحتواء المبكر</span><span class="green bold">64%</span></div>
+          <div class="compare-item"><span>دقة تحديد الجهة</span><span class="green bold">92%</span></div>
+          <div class="compare-item"><span>توافر توصية تشغيلية</span><span class="green bold">✓ متاح</span></div>
+        </div>
+      </div>
+      <div class="prototype-badge" style="margin-top:16px;text-align:center;display:block">جميع الأرقام محاكاة لغرض النموذج الأولي وليست بيانات حكومية فعلية</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">تفاصيل الحالة</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ===== TIME =====
+function updateTime() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  const el = document.getElementById('live-time');
+  if(el) el.textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateTime, 1000);
+updateTime();
+
+// ===== SPLASH =====
+function enterApp() {
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  showPage('home');
+  animateKPIs();
+}
+function enterAppDemo() {
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  showPage('simulation');
+}
+
+// ===== PAGE NAV =====
+const pageTitles = {
+  home: 'الرئيسية',
+  early: 'الرصد المبكر',
+  cases: 'الحالات',
+  engine: 'محرك الأثر الاستباقي',
+  simulation: 'محاكاة الاستجابة',
+  verify: 'التحقق',
+  community: 'المجتمع',
+  recommendations: 'التوصية الذكية',
+  command: 'مركز القيادة',
+  twin: 'توأم الحالة',
+  impact: 'أثر مِقدام',
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[id] || id;
+  // highlight nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if(n.textContent.includes(pageTitles[id]?.substring(0,4))) n.classList.add('active');
+  });
+  if(id==='twin') setTimeout(updateTwin,100);
+}
+
+// ===== KPI ANIMATION =====
+function animateKPIs() {
+  const targets = [{id:'kpi1',val:1284,prefix:''},{id:'kpi2',val:37},{id:'kpi3',val:8}];
+  targets.forEach(t => {
+    const el = document.getElementById(t.id);
+    if(!el) return;
+    let cur = 0;
+    const step = Math.ceil(t.val/40);
+    const timer = setInterval(() => {
+      cur = Math.min(cur+step, t.val);
+      el.textContent = cur.toLocaleString('ar-SA');
+      if(cur>=t.val) clearInterval(timer);
+    }, 30);
+  });
+}
+
+// ===== ESCALATE =====
+function escalateCase(btn) {
+  btn.textContent = 'تمت رفع الأولوية ✓';
+  btn.style.background = 'rgba(34,201,122,0.15)';
+  btn.style.color = 'var(--accent-green)';
+  btn.style.borderColor = 'rgba(34,201,122,0.3)';
+  btn.disabled = true;
+}
+
+// ===== FILTER CASES =====
+function filterCases(btn, type) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ===== MODAL =====
+const modalContent = {
+  demo: {
+    title: 'Demo — إشاعة إيقاف خدمة الدعم السكني',
+    body: `
+      <div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:13px;color:var(--accent-gold);font-weight:700;margin-bottom:6px">سيناريو Demo — جاهز للعرض أمام لجنة التحكيم</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">مِقدام رصد المنشور منذ 22 دقيقة. مؤشر التدخل المبكر وصل إلى 84/100. تُقدّر المحاكاة أن التدخل خلال 15 دقيقة سيخفض الأثر بنسبة 63%.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">وقت الرصد</div><div style="font-weight:600">منذ 22 دقيقة</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">مؤشر التدخل</div><div style="font-weight:800;color:var(--accent-red);font-size:20px">84 / 100</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">الانتشار الحالي</div><div style="font-weight:600;color:var(--accent-gold)">68%</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">أفضل نقطة تدخل</div><div style="font-weight:700;color:var(--accent-gold)">الآن</div></div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn-primary" onclick="closeModalDirect();showPage('simulation')">محاكاة الاستجابة</button>
+        <button class="btn-case btn-verify" style="padding:10px 20px;border-radius:8px" onclick="closeModalDirect();showPage('engine')">محرك الأثر</button>
+      </div>
+    `
+  },
+  case2: {
+    title: 'توقف التسجيل في حساب المواطن',
+    body: `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">المصدر</div><div style="font-weight:600">واتساب / تيلغرام</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">مؤشر التدخل</div><div style="font-weight:800;color:var(--accent-red);font-size:20px">76 / 100</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">الانتشار</div><div style="font-weight:600;color:var(--accent-gold)">52%</div></div>
+        <div style="background:var(--bg-card3);border-radius:8px;padding:14px"><div class="muted mb4">النمو</div><div style="font-weight:600;color:var(--accent-red)">+18% / ساعة</div></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" onclick="closeModalDirect();showPage('verify')">بدء التحقق</button>
+      </div>
+    `
+  }
+};
+
+function openModal(id) {
+  const content = modalContent[id];
+  if(!content) return;
+  document.getElementById('modal-title').textContent = content.title;
+  document.getElementById('modal-body').innerHTML = content.body;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) {
+  if(e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ===== VERIFY STATUS =====
+function updateVerifyStatus() {
+  const val = document.getElementById('verify-select').value;
+  const el = document.getElementById('verify-status');
+  const map = {verifying:'قيد التحقق', misleading:'مضلل', true:'صحيح', impersonation:'منتحل', unverified:'غير متحقق'};
+  const colorMap = {verifying:'var(--accent-gold)', misleading:'var(--accent-red)', true:'var(--accent-green)', impersonation:'var(--accent-red)', unverified:'var(--text-secondary)'};
+  el.textContent = map[val];
+  el.style.color = colorMap[val];
+}
+
+// ===== COMMUNITY VERIFY =====
+function communityVerify() {
+  const url = document.getElementById('community-url').value.trim();
+  if(!url) { alert('يرجى إدخال رابط الخبر أو المنشور'); return; }
+  const src = url.includes('twitter') ? 'تويتر / X' : url.includes('whatsapp') ? 'واتساب' : url.includes('tele') ? 'تيلغرام' : 'مصدر غير معروف';
+  document.getElementById('cr-source').textContent = src;
+  document.getElementById('community-result').classList.add('show');
+}
+function showReportModal() {
+  alert('تم استلام بلاغ انتحال المحتوى. سيتم مراجعته من قِبل فريق مِقدام.');
+}
+
+// ===== DRAFT =====
+function generateDraft() {
+  document.getElementById('draft-area').style.display = 'block';
+  document.getElementById('draft-btn').textContent = 'تم إنشاء المسودة ✓';
+  document.getElementById('draft-btn').style.background = 'rgba(34,201,122,0.15)';
+  document.getElementById('draft-btn').style.color = 'var(--accent-green)';
+  document.getElementById('draft-btn').style.border = '1px solid rgba(34,201,122,0.3)';
+  document.getElementById('draft-btn').style.borderRadius = '8px';
+  document.getElementById('draft-btn').disabled = true;
+  document.getElementById('draft-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ===== DIGITAL TWIN =====
+function updateTwin() {
+  const delay = parseInt(document.getElementById('slider-delay').value);
+  const spread = parseInt(document.getElementById('slider-spread').value);
+  const sensitivity = parseInt(document.getElementById('slider-sensitivity').value);
+  const users = parseInt(document.getElementById('slider-users').value);
+
+  document.getElementById('val-delay').textContent = delay;
+  document.getElementById('val-spread').textContent = spread;
+  document.getElementById('val-sensitivity').textContent = sensitivity;
+  document.getElementById('val-users').textContent = users;
+
+  const index = Math.min(100, Math.round((spread * 0.4) + (sensitivity * 3) + (delay * 0.3) + (users * 0.5)));
+  const reach = Math.min(99, Math.round(spread + (delay * 0.3)));
+  const affected = Math.round(users * (reach / 100) * 1000 * 2.5);
+  const impact = index > 80 ? 'بالغ' : index > 60 ? 'مرتفع' : index > 40 ? 'متوسط' : 'منخفض';
+  const rec = delay < 30 ? 'تدخل عاجل — النافذة المثلى قائمة.' : delay < 60 ? 'تدخل سريع — الأثر قابل للاحتواء.' : 'تدخل متأخر — الأثر يتصاعد بشكل ملحوظ.';
+  const impactColor = index > 60 ? 'var(--accent-red)' : index > 40 ? 'var(--accent-gold)' : 'var(--accent-green)';
+
+  document.getElementById('twin-index').textContent = index;
+  document.getElementById('twin-reach').textContent = reach + '%';
+  document.getElementById('twin-affected').textContent = affected.toLocaleString('ar-SA');
+  document.getElementById('twin-impact').textContent = impact;
+  document.getElementById('twin-impact').style.color = impactColor;
+  document.getElementById('twin-rec').textContent = rec;
+}
+
+// Meter animation on load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.meter-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0%';
+      setTimeout(() => { el.style.width = w; }, 200);
+    });
+  }, 200);
+});
+</script>
+</body>
+</html>
